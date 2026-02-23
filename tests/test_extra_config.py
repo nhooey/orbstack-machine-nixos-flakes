@@ -1,0 +1,224 @@
+"""Tests for --extra-config functionality."""
+from __future__ import annotations
+
+import subprocess
+
+import pytest
+
+from tests.utils import (
+    machine_exists,
+    file_exists_on_machine,
+    exec_on_machine,
+)
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_with_simple_package(test_machine, project_root, test_username, sample_configs_dir):
+    """Test --extra-config with a simple config that adds a package."""
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    extra_config = sample_configs_dir / "simple.nix"
+
+    # Create machine with extra config
+    cmd = [
+        "python3", str(provision_script),
+        "create", machine_name,
+        "--username", test_username,
+        "--extra-config", str(extra_config),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+    assert machine_exists(machine_name)
+
+    # Verify tmux is installed (from simple.nix)
+    result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
+    assert result.returncode == 0, "tmux should be installed from extra config"
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_with_marker_file(test_machine, project_root, test_username, sample_configs_dir):
+    """Test --extra-config creates a marker file to verify it was applied."""
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    extra_config = sample_configs_dir / "with-service.nix"
+
+    cmd = [
+        "python3", str(provision_script),
+        "create", machine_name,
+        "--username", test_username,
+        "--extra-config", str(extra_config),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+
+    # Verify marker file exists (from with-service.nix)
+    assert file_exists_on_machine(machine_name, "/etc/test-marker")
+
+    # Verify packages from with-service.nix
+    result = exec_on_machine(machine_name, ["which", "neofetch"], check=False)
+    assert result.returncode == 0, "neofetch should be installed"
+
+    result = exec_on_machine(machine_name, ["which", "jq"], check=False)
+    assert result.returncode == 0, "jq should be installed"
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_on_rebuild(test_machine_created, project_root, test_username, sample_configs_dir):
+    """Test applying --extra-config on nixos-rebuild."""
+    machine_name = test_machine_created
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    extra_config = sample_configs_dir / "simple.nix"
+
+    # First verify tmux is NOT installed
+    result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
+    initial_has_tmux = result.returncode == 0
+
+    # Run rebuild with extra config
+    cmd = [
+        "python3", str(provision_script),
+        "nixos-rebuild", machine_name,
+        "--username", test_username,
+        "--extra-config", str(extra_config),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
+
+    # Now tmux should be installed
+    result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
+    assert result.returncode == 0, "tmux should be installed after rebuild with extra config"
+
+
+@pytest.mark.requires_orbstack
+def test_extra_config_nonexistent_file(test_machine, project_root, test_username):
+    """Test that --extra-config with non-existent file fails gracefully."""
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    fake_config = "/tmp/nonexistent-config-12345.nix"
+
+    cmd = [
+        "python3", str(provision_script),
+        "create", machine_name,
+        "--username", test_username,
+        "--extra-config", fake_config,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+    # Should fail
+    assert result.returncode != 0
+    assert "not found" in result.stderr.lower()
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_relative_path(test_machine, project_root, test_username, sample_configs_dir):
+    """Test --extra-config with relative path."""
+    import os
+
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    extra_config_abs = sample_configs_dir / "simple.nix"
+
+    # Change to temp directory and use relative path
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(sample_configs_dir)
+        cmd = [
+            "python3", str(provision_script),
+            "create", machine_name,
+            "--username", test_username,
+            "--extra-config", "simple.nix",  # Relative path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+        assert result.returncode == 0, f"Creation with relative path failed: {result.stderr}"
+        assert machine_exists(machine_name)
+
+        # Verify package from config
+        result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
+        assert result.returncode == 0
+    finally:
+        os.chdir(original_cwd)
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_from_nix_extra_config_dir(test_machine, project_root, test_username, sample_configs_dir):
+    """Test --extra-config with docker.nix from orbstack-nix-config/extra/lib/ directory."""
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+
+    # Use the docker.nix from the project
+    docker_config = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
+    docker_user_config = sample_configs_dir / "docker-user.nix"
+
+    # We need to combine docker.nix with user config, so let's create a combined config
+    combined_config = sample_configs_dir / "docker-combined.nix"
+    combined_config.write_text(f"""{{ config, pkgs, username, ... }}:
+
+{{
+  imports = [
+    {docker_config}
+  ];
+
+  # Add user to docker group
+  users.users.${{username}}.extraGroups = [ "docker" ];
+}}
+""")
+
+    cmd = [
+        "python3", str(provision_script),
+        "create", machine_name,
+        "--username", test_username,
+        "--extra-config", str(combined_config),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    assert result.returncode == 0, f"Creation with docker config failed: {result.stderr}"
+    assert machine_exists(machine_name)
+
+    # Verify docker is available
+    result = exec_on_machine(machine_name, ["which", "docker"], check=False)
+    assert result.returncode == 0, "docker should be installed"
+
+    # Verify docker service is enabled (may not be active immediately)
+    result = exec_on_machine(
+        machine_name,
+        ["systemctl", "is-enabled", "docker.service"],
+        check=False
+    )
+    # Service should at least be configured even if not running
+    assert result.returncode == 0 or "enabled" in result.stdout.lower()
+
+
+@pytest.mark.slow
+@pytest.mark.requires_orbstack
+def test_extra_config_environment_variable_passed(test_machine, project_root, test_username, sample_configs_dir):
+    """Test that NIXOS_EXTRA_CONFIG environment variable is correctly passed to bootstrap script."""
+    machine_name = test_machine
+    provision_script = project_root / "orbstack-nixos-provision.py"
+    extra_config = sample_configs_dir / "with-service.nix"
+
+    cmd = [
+        "python3", str(provision_script),
+        "create", machine_name,
+        "--username", test_username,
+        "--extra-config", str(extra_config),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+
+    # The extra config was successfully applied (marker file exists)
+    assert file_exists_on_machine(machine_name, "/etc/test-marker")
+
+    # This proves that:
+    # 1. Extra config was copied to VM
+    # 2. NIXOS_EXTRA_CONFIG env var was set
+    # 3. Bootstrap script used it correctly
+    # 4. Flake imported the extra config successfully

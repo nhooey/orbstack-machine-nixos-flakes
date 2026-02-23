@@ -1,5 +1,5 @@
 # User configuration files (not tracked in git)
-/nix-extra-config/*.nix
+/orbstack-nix-config/extra/*.nix
 
 # Python
 __pycache__/

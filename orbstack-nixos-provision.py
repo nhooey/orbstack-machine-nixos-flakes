@@ -122,8 +122,8 @@ def copy_local_flake(machine_name: str, flake_repo: str) -> str:
 
 def get_flake_path(machine_name: str) -> str:
     """Get the flake path by copying local files to the machine."""
-    # Always use current directory as flake repository
-    return copy_local_flake(machine_name, ".")
+    # Use orbstack-nix-config directory as flake repository
+    return copy_local_flake(machine_name, "orbstack-nix-config")
 
 
 def copy_bootstrap_script(machine_name: str) -> str:
@@ -158,18 +158,18 @@ def copy_bootstrap_script(machine_name: str) -> str:
 
 
 def copy_nix_extra_config_dir(machine_name: str) -> None:
-    """Recursively copy nix-extra-config directory to VM if it exists."""
+    """Recursively copy orbstack-nix-config/extra directory to VM if it exists."""
     script_dir = Path(__file__).parent
-    nix_extra_config_dir = script_dir / "nix-extra-config"
+    nix_extra_config_dir = script_dir / "orbstack-nix-config" / "extra"
     tmp_base_dir = "/tmp/orbstack-nixos-provision"
 
     if not nix_extra_config_dir.exists() or not nix_extra_config_dir.is_dir():
         return
 
-    print(f"    Copying nix-extra-config directory to VM...")
+    print(f"    Copying orbstack-nix-config/extra directory to VM...")
 
     # Create the destination directory on VM
-    dest_dir = f"{tmp_base_dir}/nix-extra-config"
+    dest_dir = f"{tmp_base_dir}/orbstack-nix-config/extra"
     run_command([
         "orb", "--machine", machine_name, "mkdir", "-p", dest_dir
     ])
@@ -216,14 +216,14 @@ def copy_extra_config(machine_name: str, extra_config: str) -> str:
     if not extra_config_path.exists():
         print(f"Error: User config file not found: {extra_config}", file=sys.stderr)
 
-        # Try to suggest similar files if in nix-extra-config directory
-        if extra_config.startswith("nix-extra-config"):
+        # Try to suggest similar files if in orbstack-nix-config/extra directory
+        if extra_config.startswith("orbstack-nix-config/extra"):
             script_dir = Path(__file__).parent
-            nix_extra_config_dir = script_dir / "nix-extra-config"
+            nix_extra_config_dir = script_dir / "orbstack-nix-config" / "extra"
             if nix_extra_config_dir.exists():
                 similar_files = list(nix_extra_config_dir.rglob("*.nix"))
                 if similar_files:
-                    print("\nAvailable .nix files in nix-extra-config/:", file=sys.stderr)
+                    print("\nAvailable .nix files in orbstack-nix-config/extra/:", file=sys.stderr)
                     for f in similar_files:
                         rel_path = f.relative_to(script_dir)
                         print(f"  {rel_path}", file=sys.stderr)
@@ -309,7 +309,7 @@ def run_nixos_rebuild(
     # Get flake path (copy local files)
     flake_path = get_flake_path(machine_name)
 
-    # Copy nix-extra-config directory (always, if it exists)
+    # Copy orbstack-nix-config/extra directory (always, if it exists)
     copy_nix_extra_config_dir(machine_name)
 
     # Copy extra config if provided
@@ -382,7 +382,7 @@ def create_machine(
         else:
             print(f"Error: Machine '{machine_name}' already exists.", file=sys.stderr)
             print("To update an existing machine, use the 'nixos-rebuild' command instead:", file=sys.stderr)
-            print(f"    provision-orbstack.py nixos-rebuild {machine_name}", file=sys.stderr)
+            print(f"    orbstack-nixos-provision.py nixos-rebuild {machine_name}", file=sys.stderr)
             print("Or use --recreate to delete and recreate the machine.", file=sys.stderr)
             sys.exit(1)
 
@@ -418,7 +418,7 @@ def nixos_rebuild(
     """Run nixos-rebuild switch on an existing machine."""
     if not machine_exists(machine_name):
         print(f"Error: Machine '{machine_name}' does not exist.", file=sys.stderr)
-        print("Create it first with: provision-orbstack.py create", file=sys.stderr)
+        print("Create it first with: orbstack-nixos-provision.py create", file=sys.stderr)
         sys.exit(1)
 
     if not machine_is_running(machine_name):
