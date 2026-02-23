@@ -15,7 +15,7 @@ One-command provisioning of NixOS machines in OrbStack from a Git repository.
 2. Run the provisioning script:
    ```bash
    chmod +x provision-orbstack.py
-   ./provision-orbstack.py create my-machine --local
+   ./provision-orbstack.py create my-machine
    ```
 
 3. Connect to your machine:
@@ -51,7 +51,7 @@ To add your own packages, services, or configuration:
 
 3. After creating or modifying `user-extra.nix`, rebuild the system:
    ```bash
-   ./provision-orbstack.py nixos-rebuild my-machine --local
+   ./provision-orbstack.py nixos-rebuild my-machine
    ```
 
 ### Future Updates
@@ -60,7 +60,7 @@ You can update the system configuration using:
 
 - **From the host:**
   ```bash
-  ./provision-orbstack.py nixos-rebuild my-machine --local
+  ./provision-orbstack.py nixos-rebuild my-machine
   ```
 
 - **From inside the machine:**
