@@ -1,5 +1,5 @@
 # User configuration files (not tracked in git)
-/_*.nix
+/nix-extra-config/*.nix
 
 # Python
 __pycache__/
