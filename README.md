@@ -1,4 +1,4 @@
-# OrbStack NixOS Bootstrap
+# OrbStack NixOS Provision
 
 One-command provisioning of NixOS machines in OrbStack from a Git repository.
 
@@ -8,19 +8,19 @@ One-command provisioning of NixOS machines in OrbStack from a Git repository.
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/nhooey/orbstack-nixos-bootstrap.git
-   cd orbstack-nixos-bootstrap
+   git clone https://github.com/nhooey/orbstack-nixos-provision.git
+   cd orbstack-nixos-provision
    ```
 
 2. Run the provisioning script:
    ```bash
-   chmod +x provision-orbstack.sh
-   ./provision-orbstack.sh my-machine
+   chmod +x provision-orbstack.py
+   ./provision-orbstack.py create my-machine --local
    ```
 
 3. Connect to your machine:
    ```bash
-   orb ssh my-machine
+   orb --machine my-machine
    ```
 
 ### Adding Custom Configuration
@@ -51,7 +51,7 @@ To add your own packages, services, or configuration:
 
 3. After creating or modifying `user-extra.nix`, rebuild the system:
    ```bash
-   orb -m my-machine nixos-rebuild switch --flake github:nhooey/orbstack-nixos-bootstrap#default
+   ./provision-orbstack.py nixos-rebuild my-machine --local
    ```
 
 ### Future Updates
@@ -60,12 +60,12 @@ You can update the system configuration using:
 
 - **From the host:**
   ```bash
-  orb -m my-machine nixos-rebuild switch --flake github:nhooey/orbstack-nixos-bootstrap#default
+  ./provision-orbstack.py nixos-rebuild my-machine --local
   ```
 
 - **From inside the machine:**
   ```bash
-  nixos-rebuild switch --flake github:nhooey/orbstack-nixos-bootstrap#default
+  sudo nixos-rebuild switch --flake /etc/nixos#default --impure
   ```
 
 - **Using Colmena** (for managing multiple machines):

@@ -1,0 +1,13 @@
+# User configuration files (not tracked in git)
+/_*.nix
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Nix
+result
+result-*
