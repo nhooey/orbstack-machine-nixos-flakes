@@ -52,7 +52,7 @@ in
   ];
 
   # Default shell utilities
-  programs.bash.enableCompletion = true;
+  programs.bash.completion.enable = true;
 
   # Users
   users.users.root.initialPassword = "nixos";
