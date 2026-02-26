@@ -1,4 +1,5 @@
 """Pytest configuration and fixtures for integration tests."""
+
 from __future__ import annotations
 
 import getpass
@@ -78,22 +79,12 @@ def test_machine_created(test_machine, project_root, test_username) -> Generator
 
     Use this when you need a pre-created machine for your test.
     """
-    import subprocess
+    from tests.utils import create_machine_direct
 
     machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
 
-    # Create the machine
-    cmd = [
-        "python3",
-        str(provision_script),
-        "create",
-        machine_name,
-        "--username", test_username,
-    ]
-
-    # Run with longer timeout since provisioning takes time
-    subprocess.run(cmd, check=True, timeout=600)
+    # Call create_machine function directly for visible output
+    create_machine_direct(machine_name=machine_name, username=test_username)
 
     yield machine_name
 
@@ -107,18 +98,21 @@ def sample_configs_dir(project_root, tmp_path_factory):
 
     # Simple config that adds a package
     simple_config = configs_dir / "simple.nix"
-    simple_config.write_text("""{ config, pkgs, ... }:
+    simple_config.write_text(
+        """{ config, pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
     tmux
   ];
 }
-""")
+"""
+    )
 
     # Config that enables a service
     service_config = configs_dir / "with-service.nix"
-    service_config.write_text("""{ config, pkgs, ... }:
+    service_config.write_text(
+        """{ config, pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
@@ -129,26 +123,31 @@ def sample_configs_dir(project_root, tmp_path_factory):
   # Add a simple marker file to verify this config was applied
   environment.etc."test-marker".text = "extra-config-applied";
 }
-""")
+"""
+    )
 
     # Config that adds a user to docker group (for use with docker.nix)
     docker_user_config = configs_dir / "docker-user.nix"
-    docker_user_config.write_text("""{ config, pkgs, username, ... }:
+    docker_user_config.write_text(
+        """{ config, pkgs, username, ... }:
 
 {
   users.users.${username}.extraGroups = [ "docker" ];
 }
-""")
+"""
+    )
 
     # Invalid config (syntax error)
     invalid_config = configs_dir / "invalid.nix"
-    invalid_config.write_text("""{ config, pkgs, ... }:
+    invalid_config.write_text(
+        """{ config, pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
     tmux
   # Missing closing bracket
 }
-""")
+"""
+    )
 
     return configs_dir

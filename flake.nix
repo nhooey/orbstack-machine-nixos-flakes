@@ -52,57 +52,70 @@
 
           commands = [
             {
+              category = "app";
               name = "provision";
               help = "Run the provisioning script";
-              command = "./orbstack-nixos-provision.py $@";
+              command = ''./orbstack-nixos-provision.py "$@"'';
+            }
+            {
+              category = "code";
+              name = "python-source-files";
+              help = "List Python source files in the project";
+              command = "git ls-files | egrep '\.py$'";
+            }
+            {
+              category = "code";
+              name = "format";
+              help = "Format Python code with black";
+              command = ''black $(python-source-files) tests/ "$@"'';
+            }
+            {
+              category = "code";
+              name = "typecheck";
+              help = "Run mypy type checker";
+              command = ''mypy $(python-source-files) "$@"'';
             }
             {
               category = "testing";
               name = "tests";
               help = "Run all tests";
-              command = "pytest";
+              command = ''pytest "$@"'';
             }
             {
               category = "testing";
               name = "tests-fast";
               help = "Run only fast tests (skip slow machine creation tests)";
-              command = "pytest -m 'not slow'";
+              command = ''pytest -m 'not slow' "$@"'';
             }
             {
               category = "testing";
               name = "tests-verbose";
               help = "Run tests with verbose output";
-              command = "pytest -v";
+              command = ''pytest -v "$@"'';
+            }
+            {
+              category = "testing";
+              name = "tests-debug";
+              help = "Run tests with real-time output (no capture)";
+              command = ''pytest -s -vv "$@"'';
             }
             {
               category = "testing";
               name = "tests-parallel";
               help = "Run tests in parallel";
-              command = "pytest -n auto";
+              command = ''pytest -n auto "$@"'';
             }
             {
               category = "testing";
               name = "tests-coverage";
               help = "Run tests with coverage report";
-              command = "pytest --cov=provision_orbstack --cov-report=html --cov-report=term";
+              command = ''pytest --cov=provision_orbstack --cov-report=html --cov-report=term "$@"'';
             }
             {
               category = "testing";
               name = "tests-cleanup";
               help = "Clean up leftover test machines";
               command = "orb list | grep test-orbstack | awk '{print $1}' | xargs -I {} orb delete -f {}";
-            }
-            {
-              category = "code quality";
-              name = "format";
-              help = "Format Python code with black";
-              command = "black orbstack-nixos-provision.py tests/";
-            }
-            {
-              category = "code quality";
-              name = "typecheck";
-              help = "Run mypy type checker";
-              command = "mypy orbstack-nixos-provision.py";
             }
           ];
         };

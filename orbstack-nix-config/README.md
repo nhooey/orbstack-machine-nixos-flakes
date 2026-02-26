@@ -55,14 +55,14 @@ Enables Docker support. Use with:
 The provisioning script automatically copies this directory to the OrbStack machine at `/etc/nixos/`.
 
 ```bash
-# Create a machine (uses this flake automatically)
+# Create a machine (uses the flake in `orbstack-nix-config/flake.nix` automatically)
 ./orbstack-nixos-provision.py create my-machine
 ```
 
 ### With Extra Configuration
 
 ```bash
-# Use Docker configuration
+# Add Docker configuration
 ./orbstack-nixos-provision.py create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```

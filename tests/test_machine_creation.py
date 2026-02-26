@@ -1,7 +1,6 @@
 """Tests for basic machine creation functionality."""
-from __future__ import annotations
 
-import subprocess
+from __future__ import annotations
 
 import pytest
 
@@ -12,6 +11,9 @@ from tests.utils import (
     user_exists,
     get_hostname,
     delete_machine,
+    run_command,
+    create_machine_direct,
+    nixos_rebuild_direct,
 )
 
 
@@ -26,15 +28,7 @@ def test_create_machine_default_settings(test_machine, project_root, test_userna
     assert not machine_exists(machine_name)
 
     # Create the machine
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    # Check command succeeded
-    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+    create_machine_direct(machine_name=machine_name, username=test_username)
 
     # Verify machine exists
     assert machine_exists(machine_name)
@@ -58,15 +52,9 @@ def test_create_machine_custom_hostname(test_machine, project_root, test_usernam
     custom_hostname = f"{machine_name}-custom"
     provision_script = project_root / "orbstack-nixos-provision.py"
 
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--hostname", custom_hostname,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+    create_machine_direct(
+        machine_name=machine_name, username=test_username, hostname=custom_hostname
+    )
     assert machine_exists(machine_name)
 
     # Verify hostname is the custom one
@@ -82,14 +70,7 @@ def test_create_machine_custom_username(test_machine, project_root):
     custom_user = "testuser"
     provision_script = project_root / "orbstack-nixos-provision.py"
 
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", custom_user,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    assert result.returncode == 0, f"Creation failed: {result.stderr}"
+    create_machine_direct(machine_name=machine_name, username=custom_user)
     assert machine_exists(machine_name)
 
     # Verify custom user exists
@@ -100,19 +81,13 @@ def test_create_machine_custom_username(test_machine, project_root):
 def test_create_machine_already_exists(test_machine_created, project_root, test_username):
     """Test that creating an existing machine fails without --recreate."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
 
-    # Try to create again without --recreate
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    # Try to create again without --recreate - should raise SystemExit
+    with pytest.raises(SystemExit) as exc_info:
+        create_machine_direct(machine_name=machine_name, username=test_username)
 
-    # Should fail
-    assert result.returncode != 0
-    assert "already exists" in result.stderr.lower()
+    # Should exit with non-zero code
+    assert exc_info.value.code != 0
 
 
 @pytest.mark.slow
@@ -123,23 +98,12 @@ def test_create_machine_with_recreate(test_machine, project_root, test_username)
     provision_script = project_root / "orbstack-nixos-provision.py"
 
     # Create machine first time
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    assert result.returncode == 0
-
+    create_machine_direct(machine_name=machine_name, username=test_username)
     # Verify it exists
     assert machine_exists(machine_name)
 
     # Create again with --recreate
-    cmd.append("--recreate")
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    # Should succeed
-    assert result.returncode == 0, f"Recreate failed: {result.stderr}"
+    create_machine_direct(machine_name=machine_name, username=test_username, recreate=True)
 
     # Machine should still exist and be running
     assert machine_exists(machine_name)
@@ -153,13 +117,7 @@ def test_machine_deletion(unique_machine_name, project_root, test_username):
     provision_script = project_root / "orbstack-nixos-provision.py"
 
     # Create a machine
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    assert result.returncode == 0
+    create_machine_direct(machine_name=machine_name, username=test_username)
     assert machine_exists(machine_name)
 
     # Delete it
@@ -177,12 +135,7 @@ def test_wait_for_machine_running(test_machine, project_root, test_username):
     provision_script = project_root / "orbstack-nixos-provision.py"
 
     # Create machine
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--username", test_username,
-    ]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    create_machine_direct(machine_name=machine_name, username=test_username)
 
     # Should be running
     is_running = wait_for_machine_running(machine_name, max_wait=10)

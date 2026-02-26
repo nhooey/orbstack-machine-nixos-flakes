@@ -2,7 +2,7 @@
 name = "orbstack-nixos-provision"
 version = "0.1.0"
 description = "OrbStack NixOS machine provisioning with Nix flakes"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = []
 
 [project.optional-dependencies]
@@ -31,6 +31,7 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
+    "--log-cli-level=INFO",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -41,10 +42,10 @@ timeout_method = "thread"
 
 [tool.black]
 line-length = 100
-target-version = ["py38", "py39", "py310", "py311"]
+target-version = ["py39", "py310", "py311", "py313"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

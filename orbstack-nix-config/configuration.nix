@@ -26,6 +26,7 @@ in
 
   # Boot loader (OrbStack doesn't use traditional bootloader)
   boot.loader.grub.enable = false;
+  boot.loader.systemd-boot.enable = false;
 
   # Filesystem configuration for OrbStack
   fileSystems."/" = {

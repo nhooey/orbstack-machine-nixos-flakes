@@ -1,17 +1,19 @@
 """Tests for Nix flakes integration."""
-from __future__ import annotations
 
-import subprocess
+from __future__ import annotations
 
 import pytest
 
 from tests.utils import (
+    create_machine_direct,
+    nixos_rebuild_direct,
     machine_exists,
     machine_is_running,
     verify_flake_deployed,
     file_exists_on_machine,
     read_file_on_machine,
     exec_on_machine,
+    run_command,
 )
 
 
@@ -58,12 +60,7 @@ def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, t
     assert machine_is_running(machine_name)
 
     # Run nixos-rebuild
-    cmd = [
-        "python3", str(provision_script),
-        "nixos-rebuild", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
 
     # Should succeed
     assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
@@ -80,14 +77,7 @@ def test_rebuild_applies_configuration_changes(test_machine_created, project_roo
     provision_script = project_root / "orbstack-nixos-provision.py"
 
     # Run rebuild (should be idempotent)
-    cmd = [
-        "python3", str(provision_script),
-        "nixos-rebuild", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    assert result.returncode == 0
-
+    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
     # Check that some expected packages from configuration.nix are available
     # These are defined in the base configuration
     result = exec_on_machine(machine_name, ["which", "git"], check=False)
@@ -103,12 +93,7 @@ def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
     provision_script = project_root / "orbstack-nixos-provision.py"
     fake_machine = "nonexistent-machine-12345"
 
-    cmd = [
-        "python3", str(provision_script),
-        "nixos-rebuild", fake_machine,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    nixos_rebuild_direct(machine_name=fake_machine, username=test_username)
 
     # Should fail
     assert result.returncode != 0
@@ -123,13 +108,7 @@ def test_different_flake_attributes(test_machine, project_root, test_username):
     provision_script = project_root / "orbstack-nixos-provision.py"
 
     # Create with default attribute
-    cmd = [
-        "python3", str(provision_script),
-        "create", machine_name,
-        "--flake-attr", "default",
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    create_machine_direct(machine_name=machine_name, username=test_username)
 
     assert result.returncode == 0, f"Creation with default attr failed: {result.stderr}"
     assert machine_exists(machine_name)
@@ -147,9 +126,7 @@ def test_flake_evaluation_uses_impure_mode(test_machine_created):
 
     # Check that /tmp/orbstack-nixos-provision/bootstrap-nixos.sh exists and contains --impure
     result = exec_on_machine(
-        machine_name,
-        ["cat", "/tmp/orbstack-nixos-provision/bootstrap-nixos.sh"],
-        check=False
+        machine_name, ["cat", "/tmp/orbstack-nixos-provision/bootstrap-nixos.sh"], check=False
     )
 
     if result.returncode == 0:
@@ -166,17 +143,18 @@ def test_system_was_built_from_flake(test_machine_created):
     # Check for flake-related configuration
     result = exec_on_machine(
         machine_name,
-        ["nix", "eval", "--raw", "/etc/nixos#nixosConfigurations.default.config.system.nixos.version"],
-        check=False
+        [
+            "nix",
+            "eval",
+            "--raw",
+            "/etc/nixos#nixosConfigurations.default.config.system.nixos.version",
+        ],
+        check=False,
     )
 
     # If this succeeds, we know the flake is properly set up
     # The exact version doesn't matter, just that it evaluates
     if result.returncode != 0:
         # Alternative check: see if system.build.toplevel exists
-        result = exec_on_machine(
-            machine_name,
-            ["ls", "-la", "/run/current-system"],
-            check=True
-        )
+        result = exec_on_machine(machine_name, ["ls", "-la", "/run/current-system"], check=True)
         assert "/nix/store" in result.stdout

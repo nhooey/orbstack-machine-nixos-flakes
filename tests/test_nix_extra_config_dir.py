@@ -1,15 +1,36 @@
 """Tests for orbstack-nix-config/extra directory copying functionality."""
+
 from __future__ import annotations
 
-import subprocess
-
+import shutil
 import pytest
 
 from tests.utils import (
+    create_machine_direct,
+    nixos_rebuild_direct,
     machine_exists,
     file_exists_on_machine,
     exec_on_machine,
+    run_command,
 )
+
+
+def _copy_project_files(project_root, test_project):
+    """Copy essential project files to test project directory."""
+    for file in [
+        "orbstack-nixos-provision.py",
+        "bootstrap-nixos.sh",
+        "flake.nix",
+        "flake.lock",
+    ]:
+        shutil.copy(project_root / file, test_project / file)
+
+    # Copy configuration.nix from orbstack-nix-config subdirectory
+    (test_project / "orbstack-nix-config").mkdir(parents=True, exist_ok=True)
+    shutil.copy(
+        project_root / "orbstack-nix-config/configuration.nix",
+        test_project / "orbstack-nix-config/configuration.nix"
+    )
 
 
 @pytest.mark.slow
@@ -35,8 +56,9 @@ def test_nix_extra_config_files_present(test_machine_created):
     # Check for known files from the orbstack-nix-config/extra directory
     docker_nix = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra/lib/docker.nix"
 
-    assert file_exists_on_machine(machine_name, docker_nix), \
-        "docker.nix should be copied from orbstack-nix-config/extra/lib/"
+    assert file_exists_on_machine(
+        machine_name, docker_nix
+    ), "docker.nix should be copied from orbstack-nix-config/extra/lib/"
 
 
 @pytest.mark.slow
@@ -86,31 +108,25 @@ def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, tes
     exec_on_machine(
         machine_name,
         ["rm", "-rf", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
-        check=True
+        check=True,
     )
 
     # Verify it's gone
     result = exec_on_machine(
         machine_name,
         ["test", "-d", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
-        check=False
+        check=False,
     )
     assert result.returncode != 0, "Directory should be deleted"
 
     # Run rebuild
-    cmd = [
-        "python3", str(provision_script),
-        "nixos-rebuild", machine_name,
-        "--username", test_username,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
+    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
 
     # Now the directory should exist again
     result = exec_on_machine(
         machine_name,
         ["test", "-d", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
-        check=False
+        check=False,
     )
     assert result.returncode == 0, "Directory should be recreated on rebuild"
 
@@ -124,9 +140,7 @@ def test_nix_extra_config_with_multiple_files(test_machine, project_root, test_u
     test_project.mkdir()
 
     # Copy essential files
-    import shutil
-    for file in ["orbstack-nixos-provision.py", "bootstrap-nixos.sh", "flake.nix", "flake.lock", "configuration.nix"]:
-        shutil.copy(project_root / file, test_project / file)
+    _copy_project_files(project_root, test_project)
 
     # Create a custom orbstack-nix-config/extra with nested structure
     nix_extra_config = test_project / "orbstack-nix-config/extra"
@@ -148,16 +162,11 @@ def test_nix_extra_config_with_multiple_files(test_machine, project_root, test_u
     provision_script = test_project / "orbstack-nixos-provision.py"
 
     import os
+
     original_cwd = os.getcwd()
     try:
         os.chdir(test_project)
-        cmd = [
-            "python3", str(provision_script),
-            "create", machine_name,
-            "--username", test_username,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        assert result.returncode == 0, f"Creation failed: {result.stderr}"
+        create_machine_direct(machine_name=machine_name, username=test_username)
     finally:
         os.chdir(original_cwd)
 
@@ -177,9 +186,8 @@ def test_without_nix_extra_config_dir(test_machine, project_root, test_username,
     test_project = tmp_path / "minimal-project"
     test_project.mkdir()
 
-    import shutil
-    for file in ["orbstack-nixos-provision.py", "bootstrap-nixos.sh", "flake.nix", "flake.lock", "configuration.nix"]:
-        shutil.copy(project_root / file, test_project / file)
+    # Copy essential files
+    _copy_project_files(project_root, test_project)
 
     # Do NOT create orbstack-nix-config/extra directory
 
@@ -187,18 +195,16 @@ def test_without_nix_extra_config_dir(test_machine, project_root, test_username,
     provision_script = test_project / "orbstack-nixos-provision.py"
 
     import os
+
     original_cwd = os.getcwd()
     try:
         os.chdir(test_project)
-        cmd = [
-            "python3", str(provision_script),
-            "create", machine_name,
-            "--username", test_username,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        create_machine_direct(machine_name=machine_name, username=test_username)
 
         # Should succeed even without orbstack-nix-config/extra
-        assert result.returncode == 0, f"Creation should work without orbstack-nix-config/extra: {result.stderr}"
+        assert (
+            result.returncode == 0
+        ), f"Creation should work without orbstack-nix-config/extra: {result.stderr}"
         assert machine_exists(machine_name)
     finally:
         os.chdir(original_cwd)
