@@ -115,7 +115,7 @@
               category = "testing";
               name = "tests-cleanup";
               help = "Clean up leftover test machines";
-              command = "orb list | grep test-orbstack | awk '{print $1}' | xargs -I {} orb delete -f {}";
+              command = "orb list | grep -E '^test-.*-[0-9]{13}' | awk '{print $1}' | xargs -I {} orb delete -f {}";
             }
           ];
         };

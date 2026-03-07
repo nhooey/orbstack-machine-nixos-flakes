@@ -354,16 +354,16 @@ def print_provisioning_complete(machine_name: str, username: str) -> None:
 # ============================================================================
 
 
-def create_machine(
+def create_machine_only(
     machine_name: str,
-    flake_attr: str,
-    hostname: str,
-    username: str,
     arch: str | None,
-    extra_config: str | None = None,
     recreate: bool = False,
 ) -> None:
-    """Create and provision a new OrbStack NixOS machine."""
+    """Create an OrbStack NixOS machine without provisioning it.
+
+    This is useful for creating a base machine that can be cloned later,
+    avoiding the expensive provisioning step for each test.
+    """
     # Check if machine already exists
     if machine_exists(machine_name):
         if recreate:
@@ -371,12 +371,7 @@ def create_machine(
             run_command(["orb", "delete", "-f", machine_name])
         else:
             print(f"Error: Machine '{machine_name}' already exists.", file=sys.stderr)
-            print(
-                "To update an existing machine, use the 'nixos-rebuild' command instead:",
-                file=sys.stderr,
-            )
-            print(f"    orbstack-nixos-provision.py nixos-rebuild {machine_name}", file=sys.stderr)
-            print("Or use --recreate to delete and recreate the machine.", file=sys.stderr)
+            print("Use --recreate to delete and recreate the machine.", file=sys.stderr)
             sys.exit(1)
 
     # Get architecture mapping
@@ -391,7 +386,21 @@ def create_machine(
         print(f"Error: Machine did not become ready within 60 seconds.", file=sys.stderr)
         sys.exit(1)
 
-    # Step 3: Provision NixOS using the rebuild function
+
+def create_machine(
+    machine_name: str,
+    flake_attr: str,
+    hostname: str,
+    username: str,
+    arch: str | None,
+    extra_config: str | None = None,
+    recreate: bool = False,
+) -> None:
+    """Create and provision a new OrbStack NixOS machine."""
+    # Step 1: Create OrbStack machine (without provisioning)
+    create_machine_only(machine_name, arch, recreate)
+
+    # Step 2: Provision NixOS using the rebuild function
     run_nixos_rebuild(
         machine_name, flake_attr, hostname, username, extra_config, is_initial_provision=True
     )

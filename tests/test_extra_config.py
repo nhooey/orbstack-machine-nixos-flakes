@@ -17,15 +17,14 @@ from tests.utils import (
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_extra_config_with_simple_package(
-    test_machine, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
-    """Test --extra-config with a simple config that adds a package."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    """Test --extra-config with a simple config that adds a package via nixos-rebuild."""
+    machine_name = test_machine_created
     extra_config = sample_configs_dir / "simple.nix"
 
-    # Create machine with extra config
-    create_machine_direct(
+    # Apply extra config via nixos-rebuild
+    nixos_rebuild_direct(
         machine_name=machine_name, username=test_username, extra_config=str(extra_config)
     )
     assert machine_exists(machine_name)
@@ -38,14 +37,13 @@ def test_extra_config_with_simple_package(
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_extra_config_with_marker_file(
-    test_machine, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
-    """Test --extra-config creates a marker file to verify it was applied."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    """Test --extra-config creates a marker file to verify it was applied via nixos-rebuild."""
+    machine_name = test_machine_created
     extra_config = sample_configs_dir / "with-service.nix"
 
-    create_machine_direct(
+    nixos_rebuild_direct(
         machine_name=machine_name, username=test_username, extra_config=str(extra_config)
     )
     # Verify marker file exists (from with-service.nix)
@@ -84,15 +82,14 @@ def test_extra_config_on_rebuild(
 
 
 @pytest.mark.requires_orbstack
-def test_extra_config_nonexistent_file(test_machine, project_root, test_username):
+def test_extra_config_nonexistent_file(test_machine_created, test_username):
     """Test that --extra-config with non-existent file fails gracefully."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = test_machine_created
     fake_config = "/tmp/nonexistent-config-12345.nix"
 
     # Should fail with SystemExit
     with pytest.raises(SystemExit) as exc_info:
-        create_machine_direct(
+        nixos_rebuild_direct(
             machine_name=machine_name, username=test_username, extra_config=fake_config
         )
     assert exc_info.value.code == 1
@@ -100,12 +97,11 @@ def test_extra_config_nonexistent_file(test_machine, project_root, test_username
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_extra_config_relative_path(test_machine, project_root, test_username, sample_configs_dir):
-    """Test --extra-config with relative path."""
+def test_extra_config_relative_path(test_machine_created, project_root, test_username, sample_configs_dir):
+    """Test --extra-config with relative path via nixos-rebuild."""
     import os
 
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = test_machine_created
     extra_config_abs = sample_configs_dir / "simple.nix"
 
     # Change to project root and use relative path
@@ -114,7 +110,7 @@ def test_extra_config_relative_path(test_machine, project_root, test_username, s
         os.chdir(project_root)
         # Use path relative to project root
         relative_path = extra_config_abs.relative_to(project_root)
-        create_machine_direct(
+        nixos_rebuild_direct(
             machine_name=machine_name, username=test_username, extra_config=str(relative_path)
         )
 
@@ -130,11 +126,10 @@ def test_extra_config_relative_path(test_machine, project_root, test_username, s
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_extra_config_from_nix_extra_config_dir(
-    test_machine, project_root, test_username, sample_configs_dir
+    test_machine_created, project_root, test_username, sample_configs_dir
 ):
-    """Test --extra-config with docker.nix from orbstack-nix-config/extra/lib/ directory."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    """Test --extra-config with docker.nix from orbstack-nix-config/extra/lib/ directory via nixos-rebuild."""
+    machine_name = test_machine_created
 
     # Use the docker.nix from the project
     docker_config = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
@@ -156,7 +151,7 @@ def test_extra_config_from_nix_extra_config_dir(
 """
     )
 
-    create_machine_direct(
+    nixos_rebuild_direct(
         machine_name=machine_name, username=test_username, extra_config=str(combined_config)
     )
     assert machine_exists(machine_name)
@@ -176,14 +171,13 @@ def test_extra_config_from_nix_extra_config_dir(
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_extra_config_environment_variable_passed(
-    test_machine, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
-    """Test that NIXOS_EXTRA_CONFIG environment variable is correctly passed to bootstrap script."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    """Test that NIXOS_EXTRA_CONFIG environment variable is correctly passed to bootstrap script via nixos-rebuild."""
+    machine_name = test_machine_created
     extra_config = sample_configs_dir / "with-service.nix"
 
-    create_machine_direct(
+    nixos_rebuild_direct(
         machine_name=machine_name, username=test_username, extra_config=str(extra_config)
     )
     # The extra config was successfully applied (marker file exists)

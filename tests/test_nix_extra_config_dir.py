@@ -133,8 +133,10 @@ def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, tes
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nix_extra_config_with_multiple_files(test_machine, project_root, test_username, tmp_path):
+def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root, test_username, tmp_path):
     """Test orbstack-nix-config/extra directory with multiple files in nested structure."""
+    from tests.utils import delete_machine
+
     # Create a test project directory with custom orbstack-nix-config/extra
     test_project = tmp_path / "test-project"
     test_project.mkdir()
@@ -158,7 +160,7 @@ def test_nix_extra_config_with_multiple_files(test_machine, project_root, test_u
     (modules_dir / "test3.nix").write_text("{ config, pkgs, ... }: {}")
 
     # Create machine from this test project
-    machine_name = test_machine
+    machine_name = unique_machine_name
     provision_script = test_project / "orbstack-nixos-provision.py"
 
     import os
@@ -167,21 +169,26 @@ def test_nix_extra_config_with_multiple_files(test_machine, project_root, test_u
     try:
         os.chdir(test_project)
         create_machine_direct(machine_name=machine_name, username=test_username)
+
+        # Verify all files were copied
+        base = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"
+
+        assert file_exists_on_machine(machine_name, f"{base}/README.md")
+        assert file_exists_on_machine(machine_name, f"{base}/lib/test1.nix")
+        assert file_exists_on_machine(machine_name, f"{base}/lib/test2.nix")
+        assert file_exists_on_machine(machine_name, f"{base}/modules/test3.nix")
     finally:
         os.chdir(original_cwd)
-
-    # Verify all files were copied
-    base = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"
-
-    assert file_exists_on_machine(machine_name, f"{base}/README.md")
-    assert file_exists_on_machine(machine_name, f"{base}/lib/test1.nix")
-    assert file_exists_on_machine(machine_name, f"{base}/lib/test2.nix")
-    assert file_exists_on_machine(machine_name, f"{base}/modules/test3.nix")
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.requires_orbstack
-def test_without_nix_extra_config_dir(test_machine, project_root, test_username, tmp_path):
+def test_without_nix_extra_config_dir(unique_machine_name, project_root, test_username, tmp_path):
     """Test that provisioning works even without orbstack-nix-config/extra directory."""
+    from tests.utils import delete_machine
+
     # Create a minimal test project without orbstack-nix-config/extra
     test_project = tmp_path / "minimal-project"
     test_project.mkdir()
@@ -191,7 +198,7 @@ def test_without_nix_extra_config_dir(test_machine, project_root, test_username,
 
     # Do NOT create orbstack-nix-config/extra directory
 
-    machine_name = test_machine
+    machine_name = unique_machine_name
     provision_script = test_project / "orbstack-nixos-provision.py"
 
     import os
@@ -202,9 +209,9 @@ def test_without_nix_extra_config_dir(test_machine, project_root, test_username,
         create_machine_direct(machine_name=machine_name, username=test_username)
 
         # Should succeed even without orbstack-nix-config/extra
-        assert (
-            result.returncode == 0
-        ), f"Creation should work without orbstack-nix-config/extra: {result.stderr}"
         assert machine_exists(machine_name)
     finally:
         os.chdir(original_cwd)
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)

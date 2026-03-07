@@ -60,6 +60,20 @@ def machine_is_running(machine_name: str) -> bool:
     return False
 
 
+def machine_is_stopped(machine_name: str) -> bool:
+    """Check if a machine is stopped."""
+    result = run_command(["orb", "list"], check=False)
+    if result.returncode != 0:
+        return False
+
+    for line in result.stdout.splitlines():
+        if (
+            line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} ")
+        ) and "stopped" in line:
+            return True
+    return False
+
+
 def delete_machine(machine_name: str, force: bool = True) -> bool:
     """Delete an OrbStack machine if it exists."""
     if not machine_exists(machine_name):
@@ -71,6 +85,118 @@ def delete_machine(machine_name: str, force: bool = True) -> bool:
 
     result = run_command(cmd, check=False)
     return result.returncode == 0
+
+
+def start_machine(machine_name: str, max_wait: int = 30) -> bool:
+    """Start an OrbStack machine and wait for it to be running."""
+    if not machine_exists(machine_name):
+        print(f"[TEST] Machine {machine_name} does not exist", file=sys.stderr)
+        return False
+
+    if machine_is_running(machine_name):
+        print(f"[TEST] Machine {machine_name} is already running", file=sys.stderr)
+        return True
+
+    print(f"[TEST] Starting machine {machine_name}...", file=sys.stderr)
+    result = run_command(["orb", "start", machine_name], check=False)
+    if result.returncode != 0:
+        return False
+
+    # Wait for machine to be running
+    elapsed = 0
+    while elapsed < max_wait:
+        if machine_is_running(machine_name):
+            # Give SSH daemon a moment to fully initialize
+            time.sleep(2)
+            print(f"[TEST] Machine {machine_name} is running", file=sys.stderr)
+            return True
+        time.sleep(2)
+        elapsed += 2
+
+    print(f"[TEST] Machine {machine_name} did not start within {max_wait}s", file=sys.stderr)
+    return False
+
+
+def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
+    """Stop an OrbStack machine and wait for it to be stopped."""
+    if not machine_exists(machine_name):
+        print(f"[TEST] Machine {machine_name} does not exist", file=sys.stderr)
+        return False
+
+    if machine_is_stopped(machine_name):
+        print(f"[TEST] Machine {machine_name} is already stopped", file=sys.stderr)
+        return True
+
+    print(f"[TEST] Stopping machine {machine_name}...", file=sys.stderr)
+    result = run_command(["orb", "stop", machine_name], check=False)
+    if result.returncode != 0:
+        return False
+
+    # Wait for machine to be stopped
+    elapsed = 0
+    while elapsed < max_wait:
+        if machine_is_stopped(machine_name):
+            print(f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr)
+            return True
+        time.sleep(2)
+        elapsed += 2
+
+    print(f"[TEST] Machine {machine_name} did not stop within {max_wait}s", file=sys.stderr)
+    return False
+
+
+def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
+    """Clone an OrbStack machine from source to destination.
+
+    Ensures source machine is stopped before cloning, then explicitly starts
+    the cloned machine and waits for it to be ready.
+    """
+    if not machine_exists(source_name):
+        print(f"[TEST] Source machine {source_name} does not exist", file=sys.stderr)
+        return False
+
+    if machine_exists(dest_name):
+        print(f"[TEST] Destination machine {dest_name} already exists", file=sys.stderr)
+        return False
+
+    # Ensure source machine is stopped
+    if not stop_machine(source_name):
+        print(f"[TEST] Failed to stop source machine {source_name}", file=sys.stderr)
+        return False
+
+    # Clone the machine
+    print(f"[TEST] Cloning {source_name} to {dest_name}...", file=sys.stderr)
+    result = run_command(["orb", "clone", source_name, dest_name], check=False, timeout=120)
+    if result.returncode != 0:
+        print(f"[TEST] Failed to clone machine: {result.stderr}", file=sys.stderr)
+        return False
+
+    # Verify cloned machine exists
+    if not machine_exists(dest_name):
+        print(f"[TEST] Cloned machine {dest_name} was not created", file=sys.stderr)
+        return False
+
+    # Start the cloned machine (it may be in stopped state after cloning)
+    if not machine_is_running(dest_name):
+        print(f"[TEST] Starting cloned machine {dest_name}...", file=sys.stderr)
+        result = run_command(["orb", "start", dest_name], check=False)
+        if result.returncode != 0:
+            print(f"[TEST] Failed to start cloned machine: {result.stderr}", file=sys.stderr)
+            return False
+
+    # Wait for cloned machine to be ready (running)
+    elapsed = 0
+    while elapsed < max_wait:
+        if machine_is_running(dest_name):
+            # Give SSH daemon a moment to fully initialize
+            time.sleep(2)
+            print(f"[TEST] Cloned machine {dest_name} is ready", file=sys.stderr)
+            return True
+        time.sleep(2)
+        elapsed += 2
+
+    print(f"[TEST] Cloned machine {dest_name} did not become ready within {max_wait}s", file=sys.stderr)
+    return False
 
 
 def wait_for_machine_running(machine_name: str, max_wait: int = 60) -> bool:
@@ -183,6 +309,25 @@ def import_provision_script():
     return provision_module
 
 
+def create_machine_only_direct(
+    machine_name: str,
+    arch: str | None = None,
+    recreate: bool = False,
+) -> None:
+    """
+    Create a machine (without provisioning) by calling the provision script directly.
+
+    This creates a base machine that can be provisioned later or cloned.
+    Output is visible in real-time instead of being captured.
+    """
+    provision = import_provision_script()
+    provision.create_machine_only(
+        machine_name=machine_name,
+        arch=arch,
+        recreate=recreate,
+    )
+
+
 def create_machine_direct(
     machine_name: str,
     username: str,
@@ -215,17 +360,45 @@ def nixos_rebuild_direct(
     hostname: str | None = None,
     extra_config: str | None = None,
     flake_attr: str = "default",
-) -> None:
+) -> subprocess.CompletedProcess:
     """
     Run nixos-rebuild by calling the provision script functions directly.
 
     This allows test output to be visible in real-time instead of being captured.
+    Returns a CompletedProcess-like object for consistency with subprocess interface.
     """
+    import io
+    import sys
+
     provision = import_provision_script()
-    provision.nixos_rebuild(
-        machine_name=machine_name,
-        flake_attr=flake_attr,
-        hostname=hostname or machine_name,
-        username=username,
-        extra_config=extra_config,
-    )
+
+    # Capture stderr to return in result
+    old_stderr = sys.stderr
+    captured_stderr = io.StringIO()
+
+    try:
+        sys.stderr = captured_stderr
+        provision.nixos_rebuild(
+            machine_name=machine_name,
+            flake_attr=flake_attr,
+            hostname=hostname or machine_name,
+            username=username,
+            extra_config=extra_config,
+        )
+        # If we get here, it succeeded
+        return subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="",
+            stderr=captured_stderr.getvalue(),
+        )
+    except SystemExit as e:
+        # nixos_rebuild calls sys.exit() on error
+        return subprocess.CompletedProcess(
+            args=[],
+            returncode=e.code if e.code is not None else 1,
+            stdout="",
+            stderr=captured_stderr.getvalue(),
+        )
+    finally:
+        sys.stderr = old_stderr

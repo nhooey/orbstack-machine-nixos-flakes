@@ -34,6 +34,9 @@ in
     fsType = "auto";
   };
 
+  # D-Bus - ensure it's properly enabled for systemd services
+  services.dbus.enable = true;
+
   # SSH daemon
   services.openssh = {
     enable = true;
@@ -42,6 +45,12 @@ in
       PasswordAuthentication = true;
     };
   };
+
+  # Fix systemd-hostnamed socket failures in test environments
+  # The socket often fails in containerized environments, so we mask it
+  # as it's not critical for basic system operation
+  systemd.services.systemd-hostnamed.enable = false;
+  systemd.sockets.systemd-hostnamed.enable = false;
 
   # Essential packages
   environment.systemPackages = with pkgs; [
@@ -69,6 +78,12 @@ in
 
   # Allow wheel group to use sudo without password
   security.sudo.wheelNeedsPassword = false;
+
+  # Preserve NIXOS_* and NIX_* environment variables when using sudo
+  # This is needed for nixos-rebuild to receive configuration parameters
+  security.sudo.extraConfig = ''
+    Defaults env_keep += "NIXOS_HOSTNAME NIXOS_USERNAME NIXOS_EXTRA_CONFIG NIX_CONFIG FLAKE_REF"
+  '';
 
   # Time zone
   time.timeZone = lib.mkDefault "UTC";

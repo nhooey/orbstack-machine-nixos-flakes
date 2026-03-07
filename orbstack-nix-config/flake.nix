@@ -35,10 +35,16 @@
           # Note: We use impure evaluation (builtins.getEnv) ONLY during initial provisioning
           # to accept runtime parameters like hostname and username. After the first build, these values
           # are embedded in the system configuration and can be changed by editing the Nix files.
-          specialArgs = {
-            hostname = builtins.getEnv "NIXOS_HOSTNAME";
-            username = builtins.getEnv "NIXOS_USERNAME";
-          };
+          specialArgs =
+            let
+              hostnameEnv = builtins.getEnv "NIXOS_HOSTNAME";
+              usernameEnv = builtins.getEnv "NIXOS_USERNAME";
+              # Debug: Print environment variables during evaluation
+              _ = builtins.trace "[FLAKE DEBUG] NIXOS_HOSTNAME=${hostnameEnv} NIXOS_USERNAME=${usernameEnv}" null;
+            in {
+              hostname = hostnameEnv;
+              username = usernameEnv;
+            };
         };
     in
     {

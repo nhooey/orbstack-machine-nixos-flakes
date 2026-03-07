@@ -18,13 +18,11 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_default_architecture_detection(test_machine, project_root, test_username):
+def test_default_architecture_detection(test_machine_created, test_username):
     """Test that architecture is auto-detected correctly when not specified."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = test_machine_created
 
-    # Create without --arch flag (should auto-detect)
-    create_machine_direct(machine_name=machine_name, username=test_username)
+    # Machine already created (cloned from template with default arch)
     assert machine_exists(machine_name)
 
     # Get the architecture on the VM
@@ -54,11 +52,12 @@ def test_default_architecture_detection(test_machine, project_root, test_usernam
     ],
 )
 def test_explicit_arm_architecture(
-    test_machine, project_root, test_username, arch_flag, expected_nix_arch
+    unique_machine_name, test_username, arch_flag, expected_nix_arch
 ):
     """Test creating machine with explicit ARM architecture flags."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    from tests.utils import delete_machine
+
+    machine_name = unique_machine_name
 
     # This might fail if the host doesn't support the architecture
     # OrbStack on Apple Silicon supports aarch64 natively
@@ -70,6 +69,10 @@ def test_explicit_arm_architecture(
     except (SystemExit, subprocess.CalledProcessError, subprocess.SubprocessError):
         # If it fails, it should be due to architecture incompatibility
         pytest.skip(f"Architecture {arch_flag} not supported on this host")
+    finally:
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.slow
@@ -82,11 +85,12 @@ def test_explicit_arm_architecture(
     ],
 )
 def test_explicit_x86_architecture(
-    test_machine, project_root, test_username, arch_flag, expected_nix_arch
+    unique_machine_name, test_username, arch_flag, expected_nix_arch
 ):
     """Test creating machine with explicit x86_64 architecture flags."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    from tests.utils import delete_machine
+
+    machine_name = unique_machine_name
 
     # On Apple Silicon, x86_64 runs via Rosetta 2
     # This should work but might be slower
@@ -98,6 +102,10 @@ def test_explicit_x86_architecture(
     except (SystemExit, subprocess.CalledProcessError, subprocess.SubprocessError):
         # If it fails, skip the test
         pytest.skip(f"Architecture {arch_flag} not supported on this host")
+    finally:
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 def test_architecture_mapping_function():
@@ -140,10 +148,9 @@ def test_invalid_architecture():
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_flake_attribute_matches_architecture(test_machine, project_root, test_username):
+def test_flake_attribute_matches_architecture(test_machine_created):
     """Test that the correct flake attribute is used based on architecture."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = test_machine_created
 
     # Get host architecture
     host_result = run_command(["uname", "-m"], check=True)
@@ -155,8 +162,7 @@ def test_flake_attribute_matches_architecture(test_machine, project_root, test_u
     else:
         flake_attr = "x86_64"
 
-    create_machine_direct(machine_name=machine_name, username=test_username)
-
+    # Machine already created (cloned from template)
     assert machine_exists(machine_name)
 
     # Verify the system architecture matches

@@ -19,18 +19,11 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_default_settings(test_machine, project_root, test_username):
-    """Test creating a machine with default settings."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+def test_create_machine_default_settings(test_machine_created, test_username):
+    """Test that a machine is provisioned with default settings."""
+    machine_name = test_machine_created
 
-    # Machine should not exist yet
-    assert not machine_exists(machine_name)
-
-    # Create the machine
-    create_machine_direct(machine_name=machine_name, username=test_username)
-
-    # Verify machine exists
+    # Verify machine exists (cloned from template)
     assert machine_exists(machine_name)
 
     # Verify machine is running
@@ -46,35 +39,43 @@ def test_create_machine_default_settings(test_machine, project_root, test_userna
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_custom_hostname(test_machine, project_root, test_username):
+def test_create_machine_custom_hostname(unique_machine_name, test_username):
     """Test creating a machine with custom hostname."""
-    machine_name = test_machine
+    machine_name = unique_machine_name
     custom_hostname = f"{machine_name}-custom"
-    provision_script = project_root / "orbstack-nixos-provision.py"
 
-    create_machine_direct(
-        machine_name=machine_name, username=test_username, hostname=custom_hostname
-    )
-    assert machine_exists(machine_name)
+    try:
+        create_machine_direct(
+            machine_name=machine_name, username=test_username, hostname=custom_hostname
+        )
+        assert machine_exists(machine_name)
 
-    # Verify hostname is the custom one
-    hostname = get_hostname(machine_name)
-    assert hostname == custom_hostname
+        # Verify hostname is the custom one
+        hostname = get_hostname(machine_name)
+        assert hostname == custom_hostname
+    finally:
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_custom_username(test_machine, project_root):
+def test_create_machine_custom_username(unique_machine_name):
     """Test creating a machine with custom username."""
-    machine_name = test_machine
+    machine_name = unique_machine_name
     custom_user = "testuser"
-    provision_script = project_root / "orbstack-nixos-provision.py"
 
-    create_machine_direct(machine_name=machine_name, username=custom_user)
-    assert machine_exists(machine_name)
+    try:
+        create_machine_direct(machine_name=machine_name, username=custom_user)
+        assert machine_exists(machine_name)
 
-    # Verify custom user exists
-    assert user_exists(machine_name, custom_user)
+        # Verify custom user exists
+        assert user_exists(machine_name, custom_user)
+    finally:
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.requires_orbstack
@@ -92,22 +93,26 @@ def test_create_machine_already_exists(test_machine_created, project_root, test_
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_with_recreate(test_machine, project_root, test_username):
+def test_create_machine_with_recreate(unique_machine_name, test_username):
     """Test creating a machine with --recreate flag."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = unique_machine_name
 
-    # Create machine first time
-    create_machine_direct(machine_name=machine_name, username=test_username)
-    # Verify it exists
-    assert machine_exists(machine_name)
+    try:
+        # Create machine first time
+        create_machine_direct(machine_name=machine_name, username=test_username)
+        # Verify it exists
+        assert machine_exists(machine_name)
 
-    # Create again with --recreate
-    create_machine_direct(machine_name=machine_name, username=test_username, recreate=True)
+        # Create again with --recreate
+        create_machine_direct(machine_name=machine_name, username=test_username, recreate=True)
 
-    # Machine should still exist and be running
-    assert machine_exists(machine_name)
-    assert machine_is_running(machine_name)
+        # Machine should still exist and be running
+        assert machine_exists(machine_name)
+        assert machine_is_running(machine_name)
+    finally:
+        # Cleanup
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.requires_orbstack
@@ -129,14 +134,11 @@ def test_machine_deletion(unique_machine_name, project_root, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_wait_for_machine_running(test_machine, project_root, test_username):
+def test_wait_for_machine_running(test_machine_created):
     """Test the wait_for_machine_running utility function."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    machine_name = test_machine_created
 
-    # Create machine
-    create_machine_direct(machine_name=machine_name, username=test_username)
-
+    # Machine already running (cloned from template)
     # Should be running
     is_running = wait_for_machine_running(machine_name, max_wait=10)
     assert is_running

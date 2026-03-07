@@ -22,15 +22,14 @@ from tests.utils import (
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_full_workflow_create_verify_rebuild_delete(
-    test_machine, project_root, test_username, sample_configs_dir
+    test_machine_created, project_root, test_username, sample_configs_dir
 ):
     """Test complete workflow: create → verify → rebuild → verify → delete."""
-    machine_name = test_machine
+    machine_name = test_machine_created
     provision_script = project_root / "orbstack-nixos-provision.py"
 
-    # Step 1: Create machine
-    print("\n=== Step 1: Creating machine ===")
-    create_machine_direct(machine_name=machine_name, username=test_username)
+    # Step 1: Verify machine was created (by fixture)
+    print("\n=== Step 1: Verifying machine was created ===")
     # Step 2: Verify machine state
     print("\n=== Step 2: Verifying initial state ===")
     assert machine_exists(machine_name)
@@ -117,10 +116,9 @@ def test_ssh_connectivity(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_complete_docker_workflow(test_machine, project_root, test_username, sample_configs_dir):
-    """Test complete workflow with Docker configuration."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+def test_complete_docker_workflow(test_machine_created, project_root, test_username, sample_configs_dir):
+    """Test complete workflow with Docker configuration via nixos-rebuild."""
+    machine_name = test_machine_created
 
     # Create combined Docker config
     docker_config = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
@@ -141,8 +139,8 @@ def test_complete_docker_workflow(test_machine, project_root, test_username, sam
 """
     )
 
-    # Create machine with Docker config
-    create_machine_direct(
+    # Apply Docker config via nixos-rebuild
+    nixos_rebuild_direct(
         machine_name=machine_name, username=test_username, extra_config=str(combined_config)
     )
     # Verify Docker is installed

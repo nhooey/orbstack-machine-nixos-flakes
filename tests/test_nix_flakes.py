@@ -60,7 +60,7 @@ def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, t
     assert machine_is_running(machine_name)
 
     # Run nixos-rebuild
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    result = nixos_rebuild_direct(machine_name=machine_name, username=test_username)
 
     # Should succeed
     assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
@@ -93,7 +93,7 @@ def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
     provision_script = project_root / "orbstack-nixos-provision.py"
     fake_machine = "nonexistent-machine-12345"
 
-    nixos_rebuild_direct(machine_name=fake_machine, username=test_username)
+    result = nixos_rebuild_direct(machine_name=fake_machine, username=test_username)
 
     # Should fail
     assert result.returncode != 0
@@ -102,15 +102,11 @@ def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_different_flake_attributes(test_machine, project_root, test_username):
-    """Test creating machines with different flake attributes."""
-    machine_name = test_machine
-    provision_script = project_root / "orbstack-nixos-provision.py"
+def test_different_flake_attributes(test_machine_created):
+    """Test that machine is created with default flake attribute."""
+    machine_name = test_machine_created
 
-    # Create with default attribute
-    create_machine_direct(machine_name=machine_name, username=test_username)
-
-    assert result.returncode == 0, f"Creation with default attr failed: {result.stderr}"
+    # Machine created (cloned) with default attribute
     assert machine_exists(machine_name)
 
 
