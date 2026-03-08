@@ -25,12 +25,12 @@ def _copy_project_files(project_root, test_project):
     ]:
         shutil.copy(project_root / file, test_project / file)
 
-    # Copy configuration.nix from orbstack-nix-config subdirectory
+    # Copy all required files from orbstack-nix-config subdirectory
     (test_project / "orbstack-nix-config").mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        project_root / "orbstack-nix-config/configuration.nix",
-        test_project / "orbstack-nix-config/configuration.nix"
-    )
+    for file in ["flake.nix", "flake.lock", "configuration.nix"]:
+        src_file = project_root / "orbstack-nix-config" / file
+        if src_file.exists():
+            shutil.copy(src_file, test_project / "orbstack-nix-config" / file)
 
 
 @pytest.mark.slow

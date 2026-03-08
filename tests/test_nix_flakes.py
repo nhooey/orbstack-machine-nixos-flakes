@@ -38,8 +38,8 @@ def test_flake_content_matches_source(test_machine_created, project_root):
     """Test that flake content on VM matches source files."""
     machine_name = test_machine_created
 
-    # Read flake.nix from project
-    source_flake = (project_root / "flake.nix").read_text()
+    # Read flake.nix from orbstack-nix-config (machine config, not dev shell)
+    source_flake = (project_root / "orbstack-nix-config/flake.nix").read_text()
 
     # Read flake.nix from VM
     vm_flake = read_file_on_machine(machine_name, "/etc/nixos/flake.nix")

@@ -11,6 +11,7 @@ from tests.utils import (
     file_exists_on_machine,
     exec_on_machine,
     run_command,
+    wait_for_network_online,
 )
 
 
@@ -87,29 +88,45 @@ def test_extra_config_nonexistent_file(test_machine_created, test_username):
     machine_name = test_machine_created
     fake_config = "/tmp/nonexistent-config-12345.nix"
 
-    # Should fail with SystemExit
-    with pytest.raises(SystemExit) as exc_info:
-        nixos_rebuild_direct(
-            machine_name=machine_name, username=test_username, extra_config=fake_config
-        )
-    assert exc_info.value.code == 1
+    # nixos_rebuild_direct catches SystemExit and returns it as returncode
+    result = nixos_rebuild_direct(
+        machine_name=machine_name, username=test_username, extra_config=fake_config
+    )
+
+    # Should fail with non-zero return code
+    assert result.returncode != 0, "Should fail when extra_config file doesn't exist"
+    assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_extra_config_relative_path(test_machine_created, project_root, test_username, sample_configs_dir):
+def test_extra_config_relative_path(test_machine_created, project_root, test_username, tmp_path):
     """Test --extra-config with relative path via nixos-rebuild."""
     import os
 
     machine_name = test_machine_created
-    extra_config_abs = sample_configs_dir / "simple.nix"
+
+    # Create config file within project directory so relative path works
+    config_dir = project_root / "test-configs-temp"
+    config_dir.mkdir(exist_ok=True)
+    extra_config = config_dir / "simple.nix"
+    extra_config.write_text(
+        """{ config, pkgs, ... }:
+
+{
+  environment.systemPackages = with pkgs; [
+    tmux
+  ];
+}
+"""
+    )
 
     # Change to project root and use relative path
     original_cwd = os.getcwd()
     try:
         os.chdir(project_root)
         # Use path relative to project root
-        relative_path = extra_config_abs.relative_to(project_root)
+        relative_path = extra_config.relative_to(project_root)
         nixos_rebuild_direct(
             machine_name=machine_name, username=test_username, extra_config=str(relative_path)
         )
@@ -121,6 +138,10 @@ def test_extra_config_relative_path(test_machine_created, project_root, test_use
         assert result.returncode == 0
     finally:
         os.chdir(original_cwd)
+        # Clean up temp config directory
+        if config_dir.exists():
+            import shutil
+            shutil.rmtree(config_dir)
 
 
 @pytest.mark.slow

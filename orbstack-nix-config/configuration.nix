@@ -21,6 +21,7 @@ in
     firewall.enable = true;
   };
 
+
   # Enable Nix flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -46,9 +47,9 @@ in
     };
   };
 
-  # Fix systemd-hostnamed socket failures in test environments
-  # The socket often fails in containerized environments, so we mask it
-  # as it's not critical for basic system operation
+  # Disable systemd-hostnamed since it can fail in containerized environments
+  # The hostname is still set via /etc/hostname and will be correct after reboot
+  # For immediate hostname changes, tests should check /etc/hostname or reboot
   systemd.services.systemd-hostnamed.enable = false;
   systemd.sockets.systemd-hostnamed.enable = false;
 
@@ -71,6 +72,8 @@ in
   # OrbStack expects this user to exist for seamless integration
   users.users.${actualUsername} = {
     isNormalUser = true;
+    createHome = true;
+    home = "/home/${actualUsername}";
     extraGroups = [ "wheel" "networkmanager" "docker" ];
     initialPassword = "nixos";
     shell = pkgs.bash;

@@ -143,7 +143,8 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
 
     The machine is cloned from the template for speed, but we run nixos-rebuild
     to ensure the full Nix configuration from flake.nix and configuration.nix
-    is applied, since OrbStack cloning doesn't preserve the complete Nix store.
+    is applied with the correct hostname and username, since OrbStack cloning
+    doesn't update these parameters.
     """
     from tests.utils import nixos_rebuild_direct, start_machine
 
@@ -153,9 +154,11 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     print(f"\nStarting machine {machine_name}...")
     start_machine(machine_name)
 
-    # Apply Nix configuration (cloning doesn't preserve full Nix store)
+    # Apply Nix configuration with correct hostname and username
+    # This ensures cloned machines get their unique hostname set correctly
+    # Note: nixos_rebuild_direct automatically sets hostname after rebuild
     print(f"\nApplying Nix configuration to {machine_name}...")
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    nixos_rebuild_direct(machine_name=machine_name, hostname=machine_name, username=test_username)
 
     yield machine_name
 

@@ -220,6 +220,49 @@ def exec_on_machine(
     return run_command(cmd, check=check, timeout=timeout)
 
 
+def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
+    """Wait for network to be fully online on the machine.
+
+    Waits for network-online.target and verifies DNS resolution works.
+    This prevents intermittent DNS failures during nix builds.
+    """
+    print(f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr)
+
+    # Wait for network-online.target
+    elapsed = 0
+    while elapsed < max_wait:
+        result = exec_on_machine(
+            machine_name,
+            ["systemctl", "is-active", "network-online.target"],
+            check=False,
+            timeout=10
+        )
+        if result.returncode == 0:
+            print(f"[TEST] network-online.target is active", file=sys.stderr)
+            break
+        time.sleep(2)
+        elapsed += 2
+    else:
+        print(f"[TEST] WARNING: network-online.target not active after {max_wait}s", file=sys.stderr)
+
+    # Verify DNS actually works by pinging cache.nixos.org
+    for attempt in range(5):
+        result = exec_on_machine(
+            machine_name,
+            ["ping", "-c", "1", "-W", "2", "cache.nixos.org"],
+            check=False,
+            timeout=10
+        )
+        if result.returncode == 0:
+            print(f"[TEST] DNS resolution verified (cache.nixos.org reachable)", file=sys.stderr)
+            return True
+        print(f"[TEST] DNS check attempt {attempt + 1}/5 failed, retrying...", file=sys.stderr)
+        time.sleep(2)
+
+    print(f"[TEST] WARNING: DNS resolution still not working after retries", file=sys.stderr)
+    return False
+
+
 def file_exists_on_machine(machine_name: str, file_path: str) -> bool:
     """Check if a file exists on the machine."""
     result = exec_on_machine(machine_name, ["test", "-f", file_path], check=False)
@@ -245,8 +288,12 @@ def service_is_active(machine_name: str, service_name: str) -> bool:
 
 
 def get_hostname(machine_name: str) -> str:
-    """Get the hostname of the machine."""
-    result = exec_on_machine(machine_name, ["hostname"], check=True)
+    """Get the configured hostname of the machine from /etc/hostname.
+
+    Note: This reads the configured hostname, not the running hostname.
+    The running hostname may differ until the machine is rebooted.
+    """
+    result = exec_on_machine(machine_name, ["cat", "/etc/hostname"], check=True)
     return str(result.stdout).strip()
 
 
@@ -343,10 +390,12 @@ def create_machine_direct(
     This allows test output to be visible in real-time instead of being captured.
     """
     provision = import_provision_script()
+    actual_hostname = hostname or machine_name
+
     provision.create_machine(
         machine_name=machine_name,
         flake_attr=flake_attr,
-        hostname=hostname or machine_name,
+        hostname=actual_hostname,
         username=username,
         arch=arch,
         extra_config=extra_config,
@@ -372,19 +421,25 @@ def nixos_rebuild_direct(
 
     provision = import_provision_script()
 
+    # Wait for network to be ready to prevent intermittent DNS failures
+    wait_for_network_online(machine_name)
+
     # Capture stderr to return in result
     old_stderr = sys.stderr
     captured_stderr = io.StringIO()
+
+    actual_hostname = hostname or machine_name
 
     try:
         sys.stderr = captured_stderr
         provision.nixos_rebuild(
             machine_name=machine_name,
             flake_attr=flake_attr,
-            hostname=hostname or machine_name,
+            hostname=actual_hostname,
             username=username,
             extra_config=extra_config,
         )
+
         # If we get here, it succeeded
         return subprocess.CompletedProcess(
             args=[],

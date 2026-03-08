@@ -29,15 +29,15 @@ VERBOSE = False
 
 
 def run_command(
-    cmd: list[str], check: bool = True, capture_output: bool = False
+    cmd: list[str], check: bool = True, capture_output: bool = False, timeout: int | None = None
 ) -> subprocess.CompletedProcess:
-    """Run a shell command."""
+    """Run a shell command with optional timeout."""
     if VERBOSE:
         print(f"[VERBOSE] Running: {' '.join(cmd)}", file=sys.stderr)
     if capture_output:
-        return subprocess.run(cmd, check=check, capture_output=True, text=True)
+        return subprocess.run(cmd, check=check, capture_output=True, text=True, timeout=timeout)
     else:
-        return subprocess.run(cmd, check=check, text=True)
+        return subprocess.run(cmd, check=check, text=True, timeout=timeout)
 
 
 # ============================================================================
@@ -158,8 +158,7 @@ def copy_bootstrap_script(machine_name: str) -> str:
 
 def copy_nix_extra_config_dir(machine_name: str) -> None:
     """Recursively copy orbstack-nix-config/extra directory to VM if it exists."""
-    script_dir = Path(__file__).parent
-    nix_extra_config_dir = script_dir / "orbstack-nix-config" / "extra"
+    nix_extra_config_dir = Path.cwd() / "orbstack-nix-config" / "extra"
     tmp_base_dir = "/tmp/orbstack-nixos-provision"
 
     if not nix_extra_config_dir.exists() or not nix_extra_config_dir.is_dir():
@@ -317,14 +316,20 @@ def run_nixos_rebuild(
     flake_ref = f"{flake_path}#{flake_attr}"
 
     # Build environment variables for the VM
-    env_vars = f"FLAKE_REF='{flake_ref}' NIXOS_HOSTNAME='{hostname}' NIXOS_USERNAME='{username}'"
+    # Use export to ensure they're available to subprocesses
+    env_vars = f"export FLAKE_REF='{flake_ref}'; export NIXOS_HOSTNAME='{hostname}'; export NIXOS_USERNAME='{username}'"
     if extra_config_vm_path:
-        env_vars += f" NIXOS_EXTRA_CONFIG='{extra_config_vm_path}'"
+        env_vars += f"; export NIXOS_EXTRA_CONFIG='{extra_config_vm_path}'"
 
     # Run the bootstrap script with environment variables
+    # Use a long timeout (10 minutes) since nixos-rebuild can take a while,
+    # especially on first run when it needs to download packages
     if not is_initial_provision:
         print(f"    Building and deploying: {flake_ref}")
-    run_command(["orb", "--machine", machine_name, "bash", "-c", f"{env_vars} {vm_script_path}"])
+    run_command(
+        ["orb", "--machine", machine_name, "bash", "-c", f"{env_vars}; {vm_script_path}"],
+        timeout=600  # 10 minutes
+    )
 
     if not is_initial_provision:
         print()

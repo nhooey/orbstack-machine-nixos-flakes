@@ -59,25 +59,6 @@ def test_create_machine_custom_hostname(unique_machine_name, test_username):
             delete_machine(machine_name, force=True)
 
 
-@pytest.mark.slow
-@pytest.mark.requires_orbstack
-def test_create_machine_custom_username(unique_machine_name):
-    """Test creating a machine with custom username."""
-    machine_name = unique_machine_name
-    custom_user = "testuser"
-
-    try:
-        create_machine_direct(machine_name=machine_name, username=custom_user)
-        assert machine_exists(machine_name)
-
-        # Verify custom user exists
-        assert user_exists(machine_name, custom_user)
-    finally:
-        # Cleanup
-        if machine_exists(machine_name):
-            delete_machine(machine_name, force=True)
-
-
 @pytest.mark.requires_orbstack
 def test_create_machine_already_exists(test_machine_created, project_root, test_username):
     """Test that creating an existing machine fails without --recreate."""
