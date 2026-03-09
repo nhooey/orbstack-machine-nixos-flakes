@@ -480,6 +480,7 @@ def create_machine_direct(
     Create a machine by calling the provision script functions directly.
 
     This allows test output to be visible in real-time instead of being captured.
+    Raises SystemExit on failure (as expected by the provision script).
     """
     actual_hostname = hostname or machine_name
     _print_operation_details(
@@ -493,20 +494,28 @@ def create_machine_direct(
     )
 
     provision = import_provision_script()
-    provision.create_machine(
-        machine_name=machine_name,
-        flake_attr=flake_attr,
-        hostname=actual_hostname,
-        username=username,
-        arch=arch,
-        extra_config=extra_config,
-        recreate=recreate,
-        verbose=verbose,
-    )
-    print(
-        f"[TEST] Machine created and provisioned successfully: {machine_name}",
-        file=sys.stderr,
-    )
+    try:
+        provision.create_machine(
+            machine_name=machine_name,
+            flake_attr=flake_attr,
+            hostname=actual_hostname,
+            username=username,
+            arch=arch,
+            extra_config=extra_config,
+            recreate=recreate,
+            verbose=verbose,
+        )
+        print(
+            f"[TEST] Machine created and provisioned successfully: {machine_name}",
+            file=sys.stderr,
+        )
+    except SystemExit as e:
+        # Re-raise SystemExit so pytest can catch it properly
+        print(
+            f"[TEST] Machine creation failed for {machine_name} with exit code {e.code}",
+            file=sys.stderr,
+        )
+        raise
 
 
 def nixos_rebuild_direct(
