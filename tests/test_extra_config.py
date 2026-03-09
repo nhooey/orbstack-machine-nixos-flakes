@@ -140,8 +140,8 @@ def test_016_extra_config_relative_path(test_machine_created, project_root, test
 
         assert machine_exists(machine_name)
 
-        # Verify package from config
-        result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
+        # Verify package from config using a fresh login shell
+        result = exec_on_machine(machine_name, ["which", "tmux"], check=False, login_shell=True)
         assert result.returncode == 0
     finally:
         os.chdir(original_cwd)

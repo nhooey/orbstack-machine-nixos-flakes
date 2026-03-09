@@ -248,10 +248,20 @@ def wait_for_machine_running(machine_name: str, max_wait: int = 60) -> bool:
 
 
 def exec_on_machine(
-    machine_name: str, command: list[str], check: bool = True, timeout: int = 120
+    machine_name: str,
+    command: list[str],
+    check: bool = True,
+    timeout: int = 120,
+    login_shell: bool = False,
 ) -> subprocess.CompletedProcess:
     """Execute a command on an OrbStack machine."""
-    cmd = ["orb", "--machine", machine_name] + command
+    if login_shell:
+        import shlex
+
+        cmd_str = " ".join(shlex.quote(str(arg)) for arg in command)
+        cmd = ["orb", "--machine", machine_name, "bash", "-lc", cmd_str]
+    else:
+        cmd = ["orb", "--machine", machine_name] + command
     return run_command(cmd, check=check, timeout=timeout)
 
 
