@@ -40,7 +40,7 @@ def _copy_project_files(project_root, test_project):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_029_nix_extra_config_dir_copied(test_machine_created):
+def test_025_nix_extra_config_dir_copied(test_machine_created):
     """Test that the orbstack-nix-config/extra directory is copied to the VM."""
     machine_name = test_machine_created
 
@@ -56,7 +56,7 @@ def test_029_nix_extra_config_dir_copied(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_030_nix_extra_config_files_present(test_machine_created):
+def test_026_nix_extra_config_files_present(test_machine_created):
     """Test that the specific files from orbstack-nix-config/extra are present."""
     machine_name = test_machine_created
 
@@ -70,7 +70,7 @@ def test_030_nix_extra_config_files_present(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_031_nix_extra_config_nested_structure(test_machine_created):
+def test_027_nix_extra_config_nested_structure(test_machine_created):
     """Test that the nested directory structure is preserved."""
     machine_name = test_machine_created
 
@@ -87,7 +87,7 @@ def test_031_nix_extra_config_nested_structure(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_032_nix_extra_config_file_content(test_machine_created, project_root):
+def test_028_nix_extra_config_file_content(test_machine_created, project_root):
     """Test that the file content is correctly copied."""
     machine_name = test_machine_created
 
@@ -106,7 +106,7 @@ def test_032_nix_extra_config_file_content(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_033_nix_extra_config_dir_on_rebuild(test_machine_created, test_username):
+def test_029_nix_extra_config_dir_on_rebuild(test_machine_created, test_username):
     """Test that the orbstack-nix-config/extra directory is copied again on rebuild."""
     machine_name = test_machine_created
 
@@ -139,7 +139,7 @@ def test_033_nix_extra_config_dir_on_rebuild(test_machine_created, test_username
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_034_nix_extra_config_with_multiple_files(
+def test_030_nix_extra_config_with_multiple_files(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test the orbstack-nix-config/extra directory with multiple files in a nested structure."""
@@ -192,7 +192,7 @@ def test_034_nix_extra_config_with_multiple_files(
 
 
 @pytest.mark.requires_orbstack
-def test_035_without_nix_extra_config_dir(
+def test_031_without_nix_extra_config_dir(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test that provisioning works even without the orbstack-nix-config/extra directory."""

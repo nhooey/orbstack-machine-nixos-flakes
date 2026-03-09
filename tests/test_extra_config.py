@@ -16,7 +16,7 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_016_extra_config_with_simple_package(
+def test_012_extra_config_with_simple_package(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test --extra-config with a simple config that adds a package via nixos-rebuild."""
@@ -38,7 +38,7 @@ def test_016_extra_config_with_simple_package(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_017_extra_config_with_marker_file(
+def test_013_extra_config_with_marker_file(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test --extra-config creates a marker file to verify it was applied via nixos-rebuild."""
@@ -63,7 +63,7 @@ def test_017_extra_config_with_marker_file(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_018_extra_config_on_rebuild(
+def test_014_extra_config_on_rebuild(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test applying --extra-config on nixos-rebuild."""
@@ -85,7 +85,7 @@ def test_018_extra_config_on_rebuild(
 
 
 @pytest.mark.requires_orbstack
-def test_019_extra_config_nonexistent_file(test_machine_created, test_username):
+def test_015_extra_config_nonexistent_file(test_machine_created, test_username):
     """Test that --extra-config with a non-existent file fails gracefully."""
     machine_name = test_machine_created
     fake_config = "/tmp/nonexistent-config-12345.nix"
@@ -105,7 +105,7 @@ def test_019_extra_config_nonexistent_file(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_020_extra_config_relative_path(test_machine_created, project_root, test_username):
+def test_016_extra_config_relative_path(test_machine_created, project_root, test_username):
     """Test --extra-config with a relative path via nixos-rebuild."""
     import os
 
@@ -154,7 +154,7 @@ def test_020_extra_config_relative_path(test_machine_created, project_root, test
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_021_extra_config_from_nix_extra_config_dir(
+def test_017_extra_config_from_nix_extra_config_dir(
     test_machine_created, project_root, test_username, sample_configs_dir
 ):
     """Test --extra-config with docker.nix from orbstack-nix-config/extra/lib/ directory via nixos-rebuild."""
@@ -202,7 +202,7 @@ def test_021_extra_config_from_nix_extra_config_dir(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_022_extra_config_environment_variable_passed(
+def test_018_extra_config_environment_variable_passed(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test that the NIXOS_EXTRA_CONFIG environment variable is correctly passed to a bootstrap script via nixos-rebuild."""
