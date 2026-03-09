@@ -44,8 +44,8 @@
           ]
         );
 
-        # Create virtual environment with all dependencies
-        pythonEnv = pythonSet.mkVirtualEnv "orbstack-machine-nixos-flakes-env" workspace.deps.default;
+        # Create virtual environment with all dependencies (including dev and test)
+        pythonEnv = pythonSet.mkVirtualEnv "orbstack-machine-nixos-flakes-env" workspace.deps.all;
       in
       {
         # Development shell for working on this project
