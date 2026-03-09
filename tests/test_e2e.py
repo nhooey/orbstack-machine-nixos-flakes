@@ -49,7 +49,9 @@ def test_full_workflow_create_verify_rebuild_delete(
     print("\n=== Step 3: Rebuilding with extra config ===")
     extra_config = sample_configs_dir / "with-service.nix"
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(extra_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(extra_config),
     )
 
     # Step 4: Verify rebuild changes
@@ -88,7 +90,9 @@ def test_multiple_sequential_rebuilds(
     print("\n=== Rebuild 2: With simple config ===")
     simple_config = sample_configs_dir / "simple.nix"
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(simple_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(simple_config),
     )
     assert machine_is_running(machine_name)
 
@@ -113,18 +117,24 @@ def test_ssh_connectivity(test_machine_created):
     assert "Hello from VM" in result.stdout
 
     # Test that SSH service is running
-    result = exec_on_machine(machine_name, ["systemctl", "is-active", "sshd"], check=False)
+    result = exec_on_machine(
+        machine_name, ["systemctl", "is-active", "sshd"], check=False
+    )
     assert result.returncode == 0
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_complete_docker_workflow(test_machine_created, project_root, test_username, sample_configs_dir):
+def test_complete_docker_workflow(
+    test_machine_created, project_root, test_username, sample_configs_dir
+):
     """Test complete workflow with Docker configuration via nixos-rebuild."""
     machine_name = test_machine_created
 
     # Create combined Docker config
-    docker_config = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
+    docker_config = (
+        project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
+    )
     combined_config = sample_configs_dir / "docker-full.nix"
     combined_config.write_text(
         f"""{{ config, pkgs, username, ... }}:
@@ -144,7 +154,9 @@ def test_complete_docker_workflow(test_machine_created, project_root, test_usern
 
     # Apply Docker config via nixos-rebuild
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(combined_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(combined_config),
     )
     # Verify Docker is installed
     result = exec_on_machine(machine_name, ["which", "docker"], check=False)
@@ -174,13 +186,17 @@ def test_persistence_after_rebuild(test_machine_created, project_root, test_user
     )
 
     # Verify file exists
-    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
+    result = exec_on_machine(
+        machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
+    )
     assert test_file_content in result.stdout
 
     # Run rebuild
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
     # Verify file still exists after rebuild
-    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
+    result = exec_on_machine(
+        machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
+    )
     assert test_file_content in result.stdout
 
 

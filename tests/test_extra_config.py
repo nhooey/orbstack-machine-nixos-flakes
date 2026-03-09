@@ -29,7 +29,9 @@ def test_extra_config_with_simple_package(
 
     # Apply extra config via nixos-rebuild
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(extra_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(extra_config),
     )
     assert machine_exists(machine_name)
 
@@ -48,7 +50,9 @@ def test_extra_config_with_marker_file(
     extra_config = sample_configs_dir / "with-service.nix"
 
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(extra_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(extra_config),
     )
     # Verify marker file exists (from with-service.nix)
     assert file_exists_on_machine(machine_name, "/etc/test-marker")
@@ -77,12 +81,16 @@ def test_extra_config_on_rebuild(
 
     # Run rebuild with extra config
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(extra_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(extra_config),
     )
 
     # Now tmux should be installed
     result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
-    assert result.returncode == 0, "tmux should be installed after rebuild with extra config"
+    assert result.returncode == 0, (
+        "tmux should be installed after rebuild with extra config"
+    )
 
 
 @pytest.mark.requires_orbstack
@@ -98,12 +106,17 @@ def test_extra_config_nonexistent_file(test_machine_created, test_username):
 
     # Should fail with non-zero return code
     assert result.returncode != 0, "Should fail when extra_config file doesn't exist"
-    assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()
+    assert (
+        "not found" in result.stderr.lower()
+        or "does not exist" in result.stderr.lower()
+    )
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_extra_config_relative_path(test_machine_created, project_root, test_username, tmp_path):
+def test_extra_config_relative_path(
+    test_machine_created, project_root, test_username, tmp_path
+):
     """Test --extra-config with relative path via nixos-rebuild."""
     import os
 
@@ -131,7 +144,9 @@ def test_extra_config_relative_path(test_machine_created, project_root, test_use
         # Use path relative to project root
         relative_path = extra_config.relative_to(project_root)
         nixos_rebuild_direct(
-            machine_name=machine_name, username=test_username, extra_config=str(relative_path)
+            machine_name=machine_name,
+            username=test_username,
+            extra_config=str(relative_path),
         )
 
         assert machine_exists(machine_name)
@@ -144,6 +159,7 @@ def test_extra_config_relative_path(test_machine_created, project_root, test_use
         # Clean up temp config directory
         if config_dir.exists():
             import shutil
+
             shutil.rmtree(config_dir)
 
 
@@ -156,7 +172,9 @@ def test_extra_config_from_nix_extra_config_dir(
     machine_name = test_machine_created
 
     # Use the docker.nix from the project
-    docker_config = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
+    docker_config = (
+        project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
+    )
     docker_user_config = sample_configs_dir / "docker-user.nix"
 
     # We need to combine docker.nix with user config, so let's create a combined config
@@ -176,7 +194,9 @@ def test_extra_config_from_nix_extra_config_dir(
     )
 
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(combined_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(combined_config),
     )
     assert machine_exists(machine_name)
 
@@ -202,7 +222,9 @@ def test_extra_config_environment_variable_passed(
     extra_config = sample_configs_dir / "with-service.nix"
 
     nixos_rebuild_direct(
-        machine_name=machine_name, username=test_username, extra_config=str(extra_config)
+        machine_name=machine_name,
+        username=test_username,
+        extra_config=str(extra_config),
     )
     # The extra config was successfully applied (marker file exists)
     assert file_exists_on_machine(machine_name, "/etc/test-marker")

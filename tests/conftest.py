@@ -24,7 +24,8 @@ def pytest_configure(config):
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
     config.addinivalue_line(
-        "markers", "requires_orbstack: marks tests that require OrbStack to be installed"
+        "markers",
+        "requires_orbstack: marks tests that require OrbStack to be installed",
     )
 
 
@@ -33,7 +34,9 @@ def pytest_collection_modifyitems(config, items):
     if not orbstack_is_installed():
         skip_orbstack = pytest.mark.skip(reason="OrbStack not installed")
         for item in items:
-            if "requires_orbstack" in item.keywords or item.fspath.basename.startswith("test_"):
+            if "requires_orbstack" in item.keywords or item.fspath.basename.startswith(
+                "test_"
+            ):
                 item.add_marker(skip_orbstack)
 
 
@@ -72,7 +75,9 @@ def unique_machine_name(request, session_timestamp):
     if test_name.startswith("test_"):
         test_name = test_name[5:]
     # Replace underscores and brackets with hyphens, convert to lowercase
-    normalized_name = test_name.replace("_", "-").replace("[", "-").replace("]", "").lower()
+    normalized_name = (
+        test_name.replace("_", "-").replace("[", "-").replace("]", "").lower()
+    )
     # Remove any trailing hyphens
     normalized_name = normalized_name.rstrip("-")
 
@@ -93,24 +98,33 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
 
     template_name = f"test-MASTER-{session_timestamp}"
 
-    print(f"\n{'='*80}", file=sys.stderr)
+    print(f"\n{'=' * 80}", file=sys.stderr)
     print(f"[TEST] Creating master template machine: {template_name}", file=sys.stderr)
     print(f"[TEST] This will be cloned for all tests in this session", file=sys.stderr)
-    print(f"{'='*80}\n", file=sys.stderr)
+    print(f"{'=' * 80}\n", file=sys.stderr)
 
     # Create and provision the template machine
     create_machine_direct(machine_name=template_name, username=test_username)
 
     # Stop the template machine so it can be cloned
-    print(f"\n[TEST] Stopping template machine {template_name} to enable cloning...", file=sys.stderr)
+    print(
+        f"\n[TEST] Stopping template machine {template_name} to enable cloning...",
+        file=sys.stderr,
+    )
     if not stop_machine(template_name):
-        print(f"[TEST] WARNING: Failed to stop template machine {template_name}", file=sys.stderr)
+        print(
+            f"[TEST] WARNING: Failed to stop template machine {template_name}",
+            file=sys.stderr,
+        )
 
     yield template_name
 
     # Cleanup: delete template machine after all tests
     if machine_exists(template_name):
-        print(f"\n[TEST] Cleaning up master template machine: {template_name}", file=sys.stderr)
+        print(
+            f"\n[TEST] Cleaning up master template machine: {template_name}",
+            file=sys.stderr,
+        )
         delete_machine(template_name, force=True)
 
 
@@ -122,13 +136,19 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
     Clones from the master template machine for much faster test setup.
     """
     import sys
+
     machine_name = unique_machine_name
 
     # Clone from template
-    print(f"\n[TEST] Cloning test machine {machine_name} from template {template_machine}", file=sys.stderr)
+    print(
+        f"\n[TEST] Cloning test machine {machine_name} from template {template_machine}",
+        file=sys.stderr,
+    )
     success = clone_machine(template_machine, machine_name)
     if not success:
-        raise RuntimeError(f"Failed to clone machine {machine_name} from {template_machine}")
+        raise RuntimeError(
+            f"Failed to clone machine {machine_name} from {template_machine}"
+        )
 
     yield machine_name
 
@@ -161,7 +181,9 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     # This ensures cloned machines get their unique hostname set correctly
     # Note: nixos_rebuild_direct automatically sets hostname after rebuild
     print(f"\n[TEST] Applying Nix configuration to {machine_name}...", file=sys.stderr)
-    nixos_rebuild_direct(machine_name=machine_name, hostname=machine_name, username=test_username)
+    nixos_rebuild_direct(
+        machine_name=machine_name, hostname=machine_name, username=test_username
+    )
 
     yield machine_name
 

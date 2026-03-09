@@ -61,7 +61,9 @@ def test_create_machine_custom_hostname(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_create_machine_already_exists(test_machine_created, project_root, test_username):
+def test_create_machine_already_exists(
+    test_machine_created, project_root, test_username
+):
     """Test that creating an existing machine fails without --recreate."""
     machine_name = test_machine_created
 
@@ -86,7 +88,9 @@ def test_create_machine_with_recreate(unique_machine_name, test_username):
         assert machine_exists(machine_name)
 
         # Create again with --recreate
-        create_machine_direct(machine_name=machine_name, username=test_username, recreate=True)
+        create_machine_direct(
+            machine_name=machine_name, username=test_username, recreate=True
+        )
 
         # Machine should still exist and be running
         assert machine_exists(machine_name)

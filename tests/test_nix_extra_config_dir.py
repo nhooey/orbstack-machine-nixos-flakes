@@ -50,7 +50,9 @@ def test_nix_extra_config_dir_copied(test_machine_created):
 
     # The directory should exist
     result = exec_on_machine(machine_name, ["test", "-d", base_path], check=False)
-    assert result.returncode == 0, "orbstack-nix-config/extra directory should exist on VM"
+    assert result.returncode == 0, (
+        "orbstack-nix-config/extra directory should exist on VM"
+    )
 
 
 @pytest.mark.slow
@@ -62,9 +64,9 @@ def test_nix_extra_config_files_present(test_machine_created):
     # Check for known files from the orbstack-nix-config/extra directory
     docker_nix = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
 
-    assert file_exists_on_machine(
-        machine_name, docker_nix
-    ), "docker.nix should be copied from orbstack-nix-config/extra/lib/"
+    assert file_exists_on_machine(machine_name, docker_nix), (
+        "docker.nix should be copied from orbstack-nix-config/extra/lib/"
+    )
 
 
 @pytest.mark.slow
@@ -105,7 +107,9 @@ def test_nix_extra_config_file_content(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, test_username):
+def test_nix_extra_config_dir_on_rebuild(
+    test_machine_created, project_root, test_username
+):
     """Test that orbstack-nix-config/extra is copied again on rebuild."""
     machine_name = test_machine_created
     provision_script = get_provision_script_path()
@@ -139,7 +143,9 @@ def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, tes
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root, test_username, tmp_path):
+def test_nix_extra_config_with_multiple_files(
+    unique_machine_name, project_root, test_username, tmp_path
+):
     """Test orbstack-nix-config/extra directory with multiple files in nested structure."""
     from tests.utils import delete_machine
 
@@ -191,7 +197,9 @@ def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root,
 
 
 @pytest.mark.requires_orbstack
-def test_without_nix_extra_config_dir(unique_machine_name, project_root, test_username, tmp_path):
+def test_without_nix_extra_config_dir(
+    unique_machine_name, project_root, test_username, tmp_path
+):
     """Test that provisioning works even without orbstack-nix-config/extra directory."""
     from tests.utils import delete_machine
 

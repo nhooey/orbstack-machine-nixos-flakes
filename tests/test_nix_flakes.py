@@ -54,7 +54,9 @@ def test_flake_content_matches_source(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, test_username):
+def test_nixos_rebuild_on_existing_machine(
+    test_machine_created, project_root, test_username
+):
     """Test running nixos-rebuild on an existing machine."""
     machine_name = test_machine_created
     provision_script = get_provision_script_path()
@@ -75,7 +77,9 @@ def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, t
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_rebuild_applies_configuration_changes(test_machine_created, project_root, test_username):
+def test_rebuild_applies_configuration_changes(
+    test_machine_created, project_root, test_username
+):
     """Test that rebuild actually applies configuration changes."""
     machine_name = test_machine_created
     provision_script = get_provision_script_path()
@@ -126,9 +130,7 @@ def test_flake_evaluation_uses_impure_mode(test_machine_created):
 
     # Check that bootstrap script exists and contains --impure
     bootstrap_path = f"{TMP_BASE_DIR}/{BOOTSTRAP_SCRIPT_NAME}"
-    result = exec_on_machine(
-        machine_name, ["cat", bootstrap_path], check=False
-    )
+    result = exec_on_machine(machine_name, ["cat", bootstrap_path], check=False)
 
     if result.returncode == 0:
         # Script might still be there from provisioning
@@ -157,5 +159,7 @@ def test_system_was_built_from_flake(test_machine_created):
     # The exact version doesn't matter, just that it evaluates
     if result.returncode != 0:
         # Alternative check: see if system.build.toplevel exists
-        result = exec_on_machine(machine_name, ["ls", "-la", "/run/current-system"], check=True)
+        result = exec_on_machine(
+            machine_name, ["ls", "-la", "/run/current-system"], check=True
+        )
         assert "/nix/store" in result.stdout

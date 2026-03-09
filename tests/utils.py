@@ -22,7 +22,7 @@ def run_command(
     import shlex
 
     # Print command for debugging - format as a proper shell command
-    cmd_str = ' '.join(shlex.quote(arg) for arg in cmd)
+    cmd_str = " ".join(shlex.quote(arg) for arg in cmd)
     print(f"\n[TEST] Running command: {cmd_str}", file=sys.stderr)
     print(f"[TEST] Timeout: {timeout}s", file=sys.stderr)
 
@@ -30,7 +30,10 @@ def run_command(
         result = subprocess.run(
             cmd, check=check, capture_output=capture_output, text=True, timeout=timeout
         )
-        print(f"[TEST] Command completed with return code: {result.returncode}", file=sys.stderr)
+        print(
+            f"[TEST] Command completed with return code: {result.returncode}",
+            file=sys.stderr,
+        )
         return result
     except subprocess.TimeoutExpired as e:
         print(f"\n[TEST ERROR] Command timed out after {timeout}s!", file=sys.stderr)
@@ -123,7 +126,10 @@ def start_machine(machine_name: str, max_wait: int = 30) -> bool:
         time.sleep(2)
         elapsed += 2
 
-    print(f"[TEST] Machine {machine_name} did not start within {max_wait}s", file=sys.stderr)
+    print(
+        f"[TEST] Machine {machine_name} did not start within {max_wait}s",
+        file=sys.stderr,
+    )
     return False
 
 
@@ -146,12 +152,17 @@ def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_stopped(machine_name):
-            print(f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr)
+            print(
+                f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr
+            )
             return True
         time.sleep(2)
         elapsed += 2
 
-    print(f"[TEST] Machine {machine_name} did not stop within {max_wait}s", file=sys.stderr)
+    print(
+        f"[TEST] Machine {machine_name} did not stop within {max_wait}s",
+        file=sys.stderr,
+    )
     return False
 
 
@@ -176,7 +187,9 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
 
     # Clone the machine
     print(f"[TEST] Cloning {source_name} to {dest_name}...", file=sys.stderr)
-    result = run_command(["orb", "clone", source_name, dest_name], check=False, timeout=120)
+    result = run_command(
+        ["orb", "clone", source_name, dest_name], check=False, timeout=120
+    )
     if result.returncode != 0:
         print(f"[TEST] Failed to clone machine: {result.stderr}", file=sys.stderr)
         return False
@@ -191,7 +204,10 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
         print(f"[TEST] Starting cloned machine {dest_name}...", file=sys.stderr)
         result = run_command(["orb", "start", dest_name], check=False)
         if result.returncode != 0:
-            print(f"[TEST] Failed to start cloned machine: {result.stderr}", file=sys.stderr)
+            print(
+                f"[TEST] Failed to start cloned machine: {result.stderr}",
+                file=sys.stderr,
+            )
             return False
 
     # Wait for cloned machine to be ready (running)
@@ -205,7 +221,10 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
         time.sleep(2)
         elapsed += 2
 
-    print(f"[TEST] Cloned machine {dest_name} did not become ready within {max_wait}s", file=sys.stderr)
+    print(
+        f"[TEST] Cloned machine {dest_name} did not become ready within {max_wait}s",
+        file=sys.stderr,
+    )
     return False
 
 
@@ -236,7 +255,9 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
     Waits for network-online.target and verifies DNS resolution works.
     This prevents intermittent DNS failures during nix builds.
     """
-    print(f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr)
+    print(
+        f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr
+    )
 
     # Wait for network-online.target
     elapsed = 0
@@ -245,7 +266,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
             machine_name,
             ["systemctl", "is-active", "network-online.target"],
             check=False,
-            timeout=10
+            timeout=10,
         )
         if result.returncode == 0:
             print(f"[TEST] network-online.target is active", file=sys.stderr)
@@ -253,7 +274,10 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
         time.sleep(2)
         elapsed += 2
     else:
-        print(f"[TEST] WARNING: network-online.target not active after {max_wait}s", file=sys.stderr)
+        print(
+            f"[TEST] WARNING: network-online.target not active after {max_wait}s",
+            file=sys.stderr,
+        )
 
     # Verify DNS actually works by pinging cache.nixos.org
     for attempt in range(5):
@@ -261,15 +285,24 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
             machine_name,
             ["ping", "-c", "1", "-W", "2", "cache.nixos.org"],
             check=False,
-            timeout=10
+            timeout=10,
         )
         if result.returncode == 0:
-            print(f"[TEST] DNS resolution verified (cache.nixos.org reachable)", file=sys.stderr)
+            print(
+                f"[TEST] DNS resolution verified (cache.nixos.org reachable)",
+                file=sys.stderr,
+            )
             return True
-        print(f"[TEST] DNS check attempt {attempt + 1}/5 failed, retrying...", file=sys.stderr)
+        print(
+            f"[TEST] DNS check attempt {attempt + 1}/5 failed, retrying...",
+            file=sys.stderr,
+        )
         time.sleep(2)
 
-    print(f"[TEST] WARNING: DNS resolution still not working after retries", file=sys.stderr)
+    print(
+        f"[TEST] WARNING: DNS resolution still not working after retries",
+        file=sys.stderr,
+    )
     return False
 
 
@@ -293,7 +326,9 @@ def get_installed_packages(machine_name: str) -> list[str]:
 
 def service_is_active(machine_name: str, service_name: str) -> bool:
     """Check if a systemd service is active."""
-    result = exec_on_machine(machine_name, ["systemctl", "is-active", service_name], check=False)
+    result = exec_on_machine(
+        machine_name, ["systemctl", "is-active", service_name], check=False
+    )
     return result.returncode == 0 and result.stdout.strip() == "active"
 
 
@@ -323,7 +358,9 @@ def get_nix_system_architecture(machine_name: str) -> str:
     return str(result.stdout).strip()
 
 
-def verify_flake_deployed(machine_name: str, expected_files: list[str] | None = None) -> bool:
+def verify_flake_deployed(
+    machine_name: str, expected_files: list[str] | None = None
+) -> bool:
     """Verify flake files exist in /etc/nixos/."""
     if expected_files is None:
         expected_files = ["flake.nix", "flake.lock", "configuration.nix"]
@@ -429,7 +466,10 @@ def create_machine_direct(
         recreate=recreate,
         verbose=verbose,
     )
-    print(f"[TEST] Machine created and provisioned successfully: {machine_name}", file=sys.stderr)
+    print(
+        f"[TEST] Machine created and provisioned successfully: {machine_name}",
+        file=sys.stderr,
+    )
 
 
 def nixos_rebuild_direct(
@@ -477,7 +517,10 @@ def nixos_rebuild_direct(
         )
 
         # If we get here, it succeeded
-        print(f"[TEST] nixos-rebuild completed successfully on {machine_name}", file=old_stderr)
+        print(
+            f"[TEST] nixos-rebuild completed successfully on {machine_name}",
+            file=old_stderr,
+        )
         return subprocess.CompletedProcess(
             args=[],
             returncode=0,
@@ -486,7 +529,10 @@ def nixos_rebuild_direct(
         )
     except SystemExit as e:
         # nixos_rebuild calls sys.exit() on error
-        print(f"[TEST] nixos-rebuild failed on {machine_name} with exit code {e.code}", file=old_stderr)
+        print(
+            f"[TEST] nixos-rebuild failed on {machine_name} with exit code {e.code}",
+            file=old_stderr,
+        )
         return subprocess.CompletedProcess(
             args=[],
             returncode=e.code if e.code is not None else 1,
