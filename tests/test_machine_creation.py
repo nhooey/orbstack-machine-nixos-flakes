@@ -21,18 +21,22 @@ def test_019_create_machine_default_settings(test_machine_created, test_username
     """Test that a machine is provisioned with default settings."""
     machine_name = test_machine_created
 
-    # Verify the machine exists (cloned from template)
-    assert machine_exists(machine_name)
+    try:
+        # Verify the machine exists (cloned from template)
+        assert machine_exists(machine_name)
 
-    # Verify the machine is running
-    assert machine_is_running(machine_name)
+        # Verify the machine is running
+        assert machine_is_running(machine_name)
 
-    # Verify the hostname matches the machine name
-    hostname = get_hostname(machine_name)
-    assert hostname == machine_name
+        # Verify the hostname matches the machine name
+        hostname = get_hostname(machine_name)
+        assert hostname == machine_name
 
-    # Verify the user exists
-    assert user_exists(machine_name, test_username)
+        # Verify the user exists
+        assert user_exists(machine_name, test_username)
+    finally:
+        # Cleanup handled by fixture, but ensure it exists for cleanup
+        pass
 
 
 @pytest.mark.slow
@@ -62,12 +66,16 @@ def test_021_create_machine_already_exists(test_machine_created, test_username):
     """Test that creating an existing machine fails without the --recreate flag."""
     machine_name = test_machine_created
 
-    # Try to create again without the --recreate flag - should raise SystemExit
-    with pytest.raises(SystemExit) as exc_info:
-        create_machine_direct(machine_name=machine_name, username=test_username)
+    try:
+        # Try to create again without the --recreate flag - should raise SystemExit
+        with pytest.raises(SystemExit) as exc_info:
+            create_machine_direct(machine_name=machine_name, username=test_username)
 
-    # Should exit with a non-zero code
-    assert exc_info.value.code != 0
+        # Should exit with a non-zero code
+        assert exc_info.value.code != 0
+    finally:
+        # Cleanup handled by fixture
+        pass
 
 
 @pytest.mark.slow
@@ -101,16 +109,21 @@ def test_023_machine_deletion(unique_machine_name, test_username):
     """Test machine deletion utility."""
     machine_name = unique_machine_name
 
-    # Create a machine
-    create_machine_direct(machine_name=machine_name, username=test_username)
-    assert machine_exists(machine_name)
+    try:
+        # Create a machine
+        create_machine_direct(machine_name=machine_name, username=test_username)
+        assert machine_exists(machine_name)
 
-    # Delete it
-    success = delete_machine(machine_name, force=True)
-    assert success
+        # Delete it
+        success = delete_machine(machine_name, force=True)
+        assert success
 
-    # Verify it's gone
-    assert not machine_exists(machine_name)
+        # Verify it's gone
+        assert not machine_exists(machine_name)
+    finally:
+        # Ensure cleanup even if test fails
+        if machine_exists(machine_name):
+            delete_machine(machine_name, force=True)
 
 
 @pytest.mark.requires_orbstack
@@ -118,7 +131,11 @@ def test_024_wait_for_machine_running(test_machine_created):
     """Test the wait_for_machine_running utility function."""
     machine_name = test_machine_created
 
-    # Machine already running (cloned from template)
-    # Should be running
-    is_running = wait_for_machine_running(machine_name, max_wait=10)
-    assert is_running
+    try:
+        # Machine already running (cloned from template)
+        # Should be running
+        is_running = wait_for_machine_running(machine_name, max_wait=10)
+        assert is_running
+    finally:
+        # Cleanup handled by fixture
+        pass
