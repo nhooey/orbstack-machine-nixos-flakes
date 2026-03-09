@@ -20,7 +20,7 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_flake_files_copied_to_etc_nixos(test_machine_created):
+def test_036_flake_files_copied_to_etc_nixos(test_machine_created):
     """Test that the flake files are copied to /etc/nixos/ correctly."""
     machine_name = test_machine_created
 
@@ -35,7 +35,7 @@ def test_flake_files_copied_to_etc_nixos(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_flake_content_matches_source(test_machine_created, project_root):
+def test_037_flake_content_matches_source(test_machine_created, project_root):
     """Test that the flake content on the VM matches the source files."""
     machine_name = test_machine_created
 
@@ -51,7 +51,7 @@ def test_flake_content_matches_source(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nixos_rebuild_on_existing_machine(test_machine_created, test_username):
+def test_038_nixos_rebuild_on_existing_machine(test_machine_created, test_username):
     """Test running nixos-rebuild on an existing machine."""
     machine_name = test_machine_created
 
@@ -71,7 +71,7 @@ def test_nixos_rebuild_on_existing_machine(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_rebuild_applies_configuration_changes(test_machine_created, test_username):
+def test_039_rebuild_applies_configuration_changes(test_machine_created, test_username):
     """Test that the rebuild actually applies configuration changes."""
     machine_name = test_machine_created
 
@@ -87,7 +87,7 @@ def test_rebuild_applies_configuration_changes(test_machine_created, test_userna
 
 
 @pytest.mark.requires_orbstack
-def test_rebuild_fails_on_nonexistent_machine(test_username):
+def test_040_rebuild_fails_on_nonexistent_machine(test_username):
     """Test that nixos-rebuild fails gracefully on a non-existent machine."""
     fake_machine = "nonexistent-machine-12345"
 
@@ -100,7 +100,7 @@ def test_rebuild_fails_on_nonexistent_machine(test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_different_flake_attributes(test_machine_created):
+def test_041_different_flake_attributes(test_machine_created):
     """Test that the machine is created with the default flake attribute."""
     machine_name = test_machine_created
 
@@ -110,7 +110,7 @@ def test_different_flake_attributes(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_flake_evaluation_uses_impure_mode(test_machine_created):
+def test_042_flake_evaluation_uses_impure_mode(test_machine_created):
     """Test that the flake evaluation works in impure mode for environment variables."""
     machine_name = test_machine_created
 
@@ -129,7 +129,7 @@ def test_flake_evaluation_uses_impure_mode(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_system_was_built_from_flake(test_machine_created):
+def test_043_system_was_built_from_flake(test_machine_created):
     """Test that the system was actually built from the flake."""
     machine_name = test_machine_created
 

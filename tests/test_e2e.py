@@ -21,7 +21,7 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_full_workflow_create_verify_rebuild_delete(
+def test_007_full_workflow_create_verify_rebuild_delete(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test complete workflow: create → verify → rebuild → verify → delete."""
@@ -70,7 +70,7 @@ def test_full_workflow_create_verify_rebuild_delete(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_multiple_sequential_rebuilds(
+def test_008_multiple_sequential_rebuilds(
     test_machine_created, test_username, sample_configs_dir
 ):
     """Test multiple sequential rebuilds to ensure idempotency."""
@@ -103,7 +103,7 @@ def test_multiple_sequential_rebuilds(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_ssh_connectivity(test_machine_created):
+def test_009_ssh_connectivity(test_machine_created):
     """Test SSH connectivity to the machine."""
     machine_name = test_machine_created
 
@@ -120,7 +120,7 @@ def test_ssh_connectivity(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_complete_docker_workflow(
+def test_010_complete_docker_workflow(
     test_machine_created, project_root, test_username, sample_configs_dir
 ):
     """Test the complete workflow with Docker configuration via nixos-rebuild."""
@@ -167,7 +167,7 @@ def test_complete_docker_workflow(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_persistence_after_rebuild(test_machine_created, test_username):
+def test_011_persistence_after_rebuild(test_machine_created, test_username):
     """Test that the configuration persists correctly after rebuilds."""
     machine_name = test_machine_created
 
@@ -196,7 +196,7 @@ def test_persistence_after_rebuild(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_system_packages_after_creation(test_machine_created):
+def test_012_system_packages_after_creation(test_machine_created):
     """Test that the expected system packages are available after creation."""
     machine_name = test_machine_created
 
@@ -210,7 +210,7 @@ def test_system_packages_after_creation(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nix_flakes_enabled(test_machine_created):
+def test_013_nix_flakes_enabled(test_machine_created):
     """Test that Nix flakes are enabled in the configuration."""
     machine_name = test_machine_created
 
@@ -225,7 +225,7 @@ def test_nix_flakes_enabled(test_machine_created):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_user_in_wheel_group(test_machine_created, test_username):
+def test_014_user_in_wheel_group(test_machine_created, test_username):
     """Test that the created user is in the wheel group."""
     machine_name = test_machine_created
 
@@ -238,7 +238,7 @@ def test_user_in_wheel_group(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_sudo_without_password(test_machine_created, test_username):
+def test_015_sudo_without_password(test_machine_created, test_username):
     """Test that the wheel group can use sudo without a password."""
     machine_name = test_machine_created
 

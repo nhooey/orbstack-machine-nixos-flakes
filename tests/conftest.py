@@ -66,38 +66,25 @@ def test_username():
 def unique_machine_name(request, session_timestamp):
     """Generate a unique machine name for testing.
 
-    Names follow the pattern: test-{normalized_test_name}-{timestamp}
-    where the timestamp is shared across all tests in the session.
+    Names follow the pattern: test-nixos-{timestamp}-{test_index}
+    where the test index is extracted from the test function name.
 
-    Machine names are truncated to fit within the 63-character DNS hostname
-    limit enforced by NixOS.
+    Test functions should be named with a numeric index prefix (e.g., test_001_foo).
     """
-    # Get the test name from the request and normalize it
+    import re
+
+    # Get the test name and extract the index number
     test_name = request.node.name
-    # Remove the 'test_' prefix if present
-    if test_name.startswith("test_"):
-        test_name = test_name[5:]
-    # Replace underscores and brackets with hyphens, convert to lowercase
-    normalized_name = (
-        test_name.replace("_", "-").replace("[", "-").replace("]", "").lower()
-    )
-    # Remove any trailing hyphens
-    normalized_name = normalized_name.rstrip("-")
 
-    machine_name = f"test-{normalized_name}-{session_timestamp}"
+    # Extract the numeric index from the test function name (e.g., test_001_foo -> 001)
+    match = re.search(r"test_(\d{3})_", test_name)
+    if match:
+        test_index = match.group(1)
+    else:
+        # Fallback if no index is found in the test name
+        test_index = "000"
 
-    # NixOS enforces a 63-character DNS hostname limit
-    # Truncate if necessary, keeping the timestamp for uniqueness
-    max_length = 63
-    if len(machine_name) > max_length:
-        # Keep timestamp (13 digits) and truncate the test name part
-        timestamp_str = str(session_timestamp)
-        # Reserve space for "test-", timestamp, and a hyphen between them
-        max_test_name_length = max_length - len("test-") - len(timestamp_str) - 1
-        truncated_test_name = normalized_name[:max_test_name_length]
-        machine_name = f"test-{truncated_test_name}-{session_timestamp}"
-
-    return machine_name
+    return f"test-nixos-{session_timestamp}-{test_index}"
 
 
 @pytest.fixture(scope="session")

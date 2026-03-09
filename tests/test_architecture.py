@@ -17,7 +17,7 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_default_architecture_detection(test_machine_created):
+def test_001_default_architecture_detection(test_machine_created):
     """Test that architecture is auto-detected correctly when not specified."""
     machine_name = test_machine_created
 
@@ -81,7 +81,7 @@ def _test_explicit_architecture_helper(
         ("arm64", "aarch64-linux"),
     ],
 )
-def test_explicit_arm_architecture(
+def test_002_explicit_arm_architecture(
     unique_machine_name, test_username, arch_flag, expected_nix_arch
 ):
     """Test creating machine with explicit ARM architecture flags."""
@@ -99,7 +99,7 @@ def test_explicit_arm_architecture(
         ("amd64", "x86_64-linux"),
     ],
 )
-def test_explicit_x86_architecture(
+def test_003_explicit_x86_architecture(
     unique_machine_name, test_username, arch_flag, expected_nix_arch
 ):
     """Test creating machine with explicit x86_64 architecture flags."""
@@ -108,7 +108,7 @@ def test_explicit_x86_architecture(
     )
 
 
-def test_architecture_mapping_function():
+def test_004_architecture_mapping_function():
     """Test the get_architecture function logic directly."""
     provision_module = import_provision_script()
     get_architecture = provision_module.get_architecture
@@ -137,7 +137,7 @@ def test_architecture_mapping_function():
     assert nix_arch in ["aarch64", "x86_64"]
 
 
-def test_invalid_architecture():
+def test_005_invalid_architecture():
     """Test that invalid architecture is rejected."""
     provision_module = import_provision_script()
     get_architecture = provision_module.get_architecture
@@ -148,7 +148,7 @@ def test_invalid_architecture():
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_flake_attribute_matches_architecture(test_machine_created):
+def test_006_flake_attribute_matches_architecture(test_machine_created):
     """Test that the correct flake attribute is used based on architecture."""
     machine_name = test_machine_created
 

@@ -17,7 +17,7 @@ from tests.utils import (
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_default_settings(test_machine_created, test_username):
+def test_023_create_machine_default_settings(test_machine_created, test_username):
     """Test that a machine is provisioned with default settings."""
     machine_name = test_machine_created
 
@@ -37,7 +37,7 @@ def test_create_machine_default_settings(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_custom_hostname(unique_machine_name, test_username):
+def test_024_create_machine_custom_hostname(unique_machine_name, test_username):
     """Test creating a machine with a custom hostname."""
     machine_name = unique_machine_name
     custom_hostname = f"{machine_name}-custom"
@@ -58,7 +58,7 @@ def test_create_machine_custom_hostname(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_create_machine_already_exists(test_machine_created, test_username):
+def test_025_create_machine_already_exists(test_machine_created, test_username):
     """Test that creating an existing machine fails without the --recreate flag."""
     machine_name = test_machine_created
 
@@ -72,7 +72,7 @@ def test_create_machine_already_exists(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_create_machine_with_recreate(unique_machine_name, test_username):
+def test_026_create_machine_with_recreate(unique_machine_name, test_username):
     """Test creating a machine with the --recreate flag."""
     machine_name = unique_machine_name
 
@@ -97,7 +97,7 @@ def test_create_machine_with_recreate(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_machine_deletion(unique_machine_name, test_username):
+def test_027_machine_deletion(unique_machine_name, test_username):
     """Test machine deletion utility."""
     machine_name = unique_machine_name
 
@@ -114,7 +114,7 @@ def test_machine_deletion(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_wait_for_machine_running(test_machine_created):
+def test_028_wait_for_machine_running(test_machine_created):
     """Test the wait_for_machine_running utility function."""
     machine_name = test_machine_created
 
