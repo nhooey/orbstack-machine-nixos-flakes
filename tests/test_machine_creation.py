@@ -8,11 +8,8 @@ from tests.utils import (
     create_machine_direct,
     delete_machine,
     get_hostname,
-    get_provision_script_path,
     machine_exists,
     machine_is_running,
-    nixos_rebuild_direct,
-    run_command,
     user_exists,
     wait_for_machine_running,
 )
@@ -24,24 +21,24 @@ def test_create_machine_default_settings(test_machine_created, test_username):
     """Test that a machine is provisioned with default settings."""
     machine_name = test_machine_created
 
-    # Verify machine exists (cloned from template)
+    # Verify the machine exists (cloned from template)
     assert machine_exists(machine_name)
 
-    # Verify machine is running
+    # Verify the machine is running
     assert machine_is_running(machine_name)
 
-    # Verify hostname matches machine name
+    # Verify the hostname matches the machine name
     hostname = get_hostname(machine_name)
     assert hostname == machine_name
 
-    # Verify user exists
+    # Verify the user exists
     assert user_exists(machine_name, test_username)
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_create_machine_custom_hostname(unique_machine_name, test_username):
-    """Test creating a machine with custom hostname."""
+    """Test creating a machine with a custom hostname."""
     machine_name = unique_machine_name
     custom_hostname = f"{machine_name}-custom"
 
@@ -51,7 +48,7 @@ def test_create_machine_custom_hostname(unique_machine_name, test_username):
         )
         assert machine_exists(machine_name)
 
-        # Verify hostname is the custom one
+        # Verify the hostname is the custom one
         hostname = get_hostname(machine_name)
         assert hostname == custom_hostname
     finally:
@@ -61,24 +58,22 @@ def test_create_machine_custom_hostname(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_create_machine_already_exists(
-    test_machine_created, project_root, test_username
-):
-    """Test that creating an existing machine fails without --recreate."""
+def test_create_machine_already_exists(test_machine_created, test_username):
+    """Test that creating an existing machine fails without the --recreate flag."""
     machine_name = test_machine_created
 
-    # Try to create again without --recreate - should raise SystemExit
+    # Try to create again without the --recreate flag - should raise SystemExit
     with pytest.raises(SystemExit) as exc_info:
         create_machine_direct(machine_name=machine_name, username=test_username)
 
-    # Should exit with non-zero code
+    # Should exit with a non-zero code
     assert exc_info.value.code != 0
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_create_machine_with_recreate(unique_machine_name, test_username):
-    """Test creating a machine with --recreate flag."""
+    """Test creating a machine with the --recreate flag."""
     machine_name = unique_machine_name
 
     try:
@@ -102,10 +97,9 @@ def test_create_machine_with_recreate(unique_machine_name, test_username):
 
 
 @pytest.mark.requires_orbstack
-def test_machine_deletion(unique_machine_name, project_root, test_username):
+def test_machine_deletion(unique_machine_name, test_username):
     """Test machine deletion utility."""
     machine_name = unique_machine_name
-    provision_script = get_provision_script_path()
 
     # Create a machine
     create_machine_direct(machine_name=machine_name, username=test_username)

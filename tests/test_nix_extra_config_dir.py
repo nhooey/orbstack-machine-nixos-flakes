@@ -15,15 +15,13 @@ from tests.utils import (
     create_machine_direct,
     exec_on_machine,
     file_exists_on_machine,
-    get_provision_script_path,
     machine_exists,
     nixos_rebuild_direct,
-    run_command,
 )
 
 
 def _copy_project_files(project_root, test_project):
-    """Copy essential project files to test project directory."""
+    """Copy essential project files to the test project directory."""
     for file in [
         PROVISION_SCRIPT_NAME,
         BOOTSTRAP_SCRIPT_NAME,
@@ -32,7 +30,7 @@ def _copy_project_files(project_root, test_project):
     ]:
         shutil.copy(project_root / file, test_project / file)
 
-    # Copy all required files from flake repo subdirectory
+    # Copy all required files from the flake repo subdirectory
     (test_project / FLAKE_REPO_DIR).mkdir(parents=True, exist_ok=True)
     for file in ["flake.nix", "flake.lock", "configuration.nix"]:
         src_file = project_root / FLAKE_REPO_DIR / file
@@ -43,26 +41,26 @@ def _copy_project_files(project_root, test_project):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_nix_extra_config_dir_copied(test_machine_created):
-    """Test that orbstack-nix-config/extra directory is copied to VM."""
+    """Test that the orbstack-nix-config/extra directory is copied to the VM."""
     machine_name = test_machine_created
 
-    # Check that orbstack-nix-config/extra directory was copied
+    # Check that the orbstack-nix-config/extra directory was copied
     base_path = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
 
     # The directory should exist
     result = exec_on_machine(machine_name, ["test", "-d", base_path], check=False)
     assert result.returncode == 0, (
-        "orbstack-nix-config/extra directory should exist on VM"
+        "The orbstack-nix-config/extra directory should exist on the VM"
     )
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_nix_extra_config_files_present(test_machine_created):
-    """Test that specific files from orbstack-nix-config/extra are present."""
+    """Test that the specific files from orbstack-nix-config/extra are present."""
     machine_name = test_machine_created
 
-    # Check for known files from the orbstack-nix-config/extra directory
+    # Check for the known files from the orbstack-nix-config/extra directory
     docker_nix = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
 
     assert file_exists_on_machine(machine_name, docker_nix), (
@@ -73,7 +71,7 @@ def test_nix_extra_config_files_present(test_machine_created):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_nix_extra_config_nested_structure(test_machine_created):
-    """Test that nested directory structure is preserved."""
+    """Test that the nested directory structure is preserved."""
     machine_name = test_machine_created
 
     # Check that the lib/ subdirectory exists
@@ -90,7 +88,7 @@ def test_nix_extra_config_nested_structure(test_machine_created):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_nix_extra_config_file_content(test_machine_created, project_root):
-    """Test that file content is correctly copied."""
+    """Test that the file content is correctly copied."""
     machine_name = test_machine_created
 
     # Read docker.nix from source
@@ -108,12 +106,9 @@ def test_nix_extra_config_file_content(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nix_extra_config_dir_on_rebuild(
-    test_machine_created, project_root, test_username
-):
-    """Test that orbstack-nix-config/extra is copied again on rebuild."""
+def test_nix_extra_config_dir_on_rebuild(test_machine_created, test_username):
+    """Test that the orbstack-nix-config/extra directory is copied again on rebuild."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
     # First, delete the orbstack-nix-config/extra directory on the VM
     exec_on_machine(
@@ -147,7 +142,7 @@ def test_nix_extra_config_dir_on_rebuild(
 def test_nix_extra_config_with_multiple_files(
     unique_machine_name, project_root, test_username, tmp_path
 ):
-    """Test orbstack-nix-config/extra directory with multiple files in nested structure."""
+    """Test the orbstack-nix-config/extra directory with multiple files in a nested structure."""
     from tests.utils import delete_machine
 
     # Create a test project directory with custom orbstack-nix-config/extra
@@ -157,7 +152,7 @@ def test_nix_extra_config_with_multiple_files(
     # Copy essential files
     _copy_project_files(project_root, test_project)
 
-    # Create a custom orbstack-nix-config/extra with nested structure
+    # Create a custom orbstack-nix-config/extra with a nested structure
     nix_extra_config = test_project / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
     nix_extra_config.mkdir()
 
@@ -172,9 +167,8 @@ def test_nix_extra_config_with_multiple_files(
     modules_dir.mkdir()
     (modules_dir / "test3.nix").write_text("{ config, pkgs, ... }: {}")
 
-    # Create machine from this test project
+    # Create a machine from this test project
     machine_name = unique_machine_name
-    provision_script = test_project / PROVISION_SCRIPT_NAME
 
     import os
 
@@ -183,7 +177,7 @@ def test_nix_extra_config_with_multiple_files(
         os.chdir(test_project)
         create_machine_direct(machine_name=machine_name, username=test_username)
 
-        # Verify all files were copied
+        # Verify all the files were copied
         base = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
 
         assert file_exists_on_machine(machine_name, f"{base}/README.md")
@@ -201,7 +195,7 @@ def test_nix_extra_config_with_multiple_files(
 def test_without_nix_extra_config_dir(
     unique_machine_name, project_root, test_username, tmp_path
 ):
-    """Test that provisioning works even without orbstack-nix-config/extra directory."""
+    """Test that provisioning works even without the orbstack-nix-config/extra directory."""
     from tests.utils import delete_machine
 
     # Create a minimal test project without orbstack-nix-config/extra
@@ -214,7 +208,6 @@ def test_without_nix_extra_config_dir(
     # Do NOT create orbstack-nix-config/extra directory
 
     machine_name = unique_machine_name
-    provision_script = test_project / PROVISION_SCRIPT_NAME
 
     import os
 

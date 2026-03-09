@@ -7,16 +7,13 @@ import pytest
 from tests.utils import (
     FLAKE_EXTRA_DIR,
     FLAKE_REPO_DIR,
-    create_machine_direct,
     delete_machine,
     exec_on_machine,
     file_exists_on_machine,
     get_hostname,
-    get_provision_script_path,
     machine_exists,
     machine_is_running,
     nixos_rebuild_direct,
-    run_command,
     user_exists,
     verify_flake_deployed,
 )
@@ -25,16 +22,15 @@ from tests.utils import (
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_full_workflow_create_verify_rebuild_delete(
-    test_machine_created, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
     """Test complete workflow: create → verify → rebuild → verify → delete."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
-    # Step 1: Verify machine was created (by fixture)
-    print("\n=== Step 1: Verifying machine was created ===")
-    # Step 2: Verify machine state
-    print("\n=== Step 2: Verifying initial state ===")
+    # Step 1: Verify the machine was created (by fixture)
+    print("\n=== Step 1: Verifying the machine was created ===")
+    # Step 2: Verify the machine state
+    print("\n=== Step 2: Verifying the initial state ===")
     assert machine_exists(machine_name)
     assert machine_is_running(machine_name)
     assert user_exists(machine_name, test_username)
@@ -75,18 +71,17 @@ def test_full_workflow_create_verify_rebuild_delete(
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_multiple_sequential_rebuilds(
-    test_machine_created, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
     """Test multiple sequential rebuilds to ensure idempotency."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
     # Rebuild 1: No extra config
     print("\n=== Rebuild 1: No extra config ===")
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
     assert machine_is_running(machine_name)
 
-    # Rebuild 2: With simple config
+    # Rebuild 2: With a simple config
     print("\n=== Rebuild 2: With simple config ===")
     simple_config = sample_configs_dir / "simple.nix"
     nixos_rebuild_direct(
@@ -116,7 +111,7 @@ def test_ssh_connectivity(test_machine_created):
     result = exec_on_machine(machine_name, ["echo", "Hello from VM"], check=True)
     assert "Hello from VM" in result.stdout
 
-    # Test that SSH service is running
+    # Test that the SSH service is running
     result = exec_on_machine(
         machine_name, ["systemctl", "is-active", "sshd"], check=False
     )
@@ -128,11 +123,11 @@ def test_ssh_connectivity(test_machine_created):
 def test_complete_docker_workflow(
     test_machine_created, project_root, test_username, sample_configs_dir
 ):
-    """Test complete workflow with Docker configuration via nixos-rebuild."""
+    """Test the complete workflow with Docker configuration via nixos-rebuild."""
     machine_name = test_machine_created
 
-    # Create combined Docker config
-    docker_config = (
+    # Create a combined Docker config
+    docker_config_path = (
         project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     )
     combined_config = sample_configs_dir / "docker-full.nix"
@@ -141,7 +136,7 @@ def test_complete_docker_workflow(
 
 {{
   imports = [
-    {docker_config}
+    {docker_config_path}
   ];
 
   users.users.${{username}}.extraGroups = [ "docker" ];
@@ -172,10 +167,9 @@ def test_complete_docker_workflow(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_persistence_after_rebuild(test_machine_created, project_root, test_username):
-    """Test that configuration persists correctly after rebuilds."""
+def test_persistence_after_rebuild(test_machine_created, test_username):
+    """Test that the configuration persists correctly after rebuilds."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
     # Create a test file in the user's home directory
     test_file_content = "This is a test file"
@@ -185,7 +179,7 @@ def test_persistence_after_rebuild(test_machine_created, project_root, test_user
         check=True,
     )
 
-    # Verify file exists
+    # Verify the file exists
     result = exec_on_machine(
         machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
     )
@@ -193,7 +187,7 @@ def test_persistence_after_rebuild(test_machine_created, project_root, test_user
 
     # Run rebuild
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
-    # Verify file still exists after rebuild
+    # Verify the file still exists after rebuild
     result = exec_on_machine(
         machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
     )
@@ -203,7 +197,7 @@ def test_persistence_after_rebuild(test_machine_created, project_root, test_user
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_system_packages_after_creation(test_machine_created):
-    """Test that expected system packages are available after creation."""
+    """Test that the expected system packages are available after creation."""
     machine_name = test_machine_created
 
     # These packages are defined in configuration.nix
@@ -232,20 +226,20 @@ def test_nix_flakes_enabled(test_machine_created):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_user_in_wheel_group(test_machine_created, test_username):
-    """Test that created user is in the wheel group."""
+    """Test that the created user is in the wheel group."""
     machine_name = test_machine_created
 
-    # Check groups for user
+    # Check groups for the user
     result = exec_on_machine(machine_name, ["groups", test_username], check=True)
 
-    # User should be in wheel group (from configuration.nix)
+    # User should be in the wheel group (from configuration.nix)
     assert "wheel" in result.stdout
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_sudo_without_password(test_machine_created, test_username):
-    """Test that wheel group can use sudo without password."""
+    """Test that the wheel group can use sudo without a password."""
     machine_name = test_machine_created
 
     # Run sudo command as the user
@@ -253,6 +247,6 @@ def test_sudo_without_password(test_machine_created, test_username):
         machine_name, ["sudo", "-n", "-u", test_username, "whoami"], check=False
     )
 
-    # Should work without password (wheelNeedsPassword = false in configuration.nix)
+    # Should work without a password (wheelNeedsPassword = false in configuration.nix)
     # Note: This test might need adjustment based on how orb handles user context
     assert result.returncode == 0 or "sudo" in result.stderr.lower()

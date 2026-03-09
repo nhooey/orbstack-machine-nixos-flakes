@@ -7,14 +7,10 @@ import pytest
 from tests.utils import (
     FLAKE_EXTRA_DIR,
     FLAKE_REPO_DIR,
-    create_machine_direct,
     exec_on_machine,
     file_exists_on_machine,
-    get_provision_script_path,
     machine_exists,
     nixos_rebuild_direct,
-    run_command,
-    wait_for_network_online,
 )
 
 
@@ -68,16 +64,11 @@ def test_extra_config_with_marker_file(
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_extra_config_on_rebuild(
-    test_machine_created, project_root, test_username, sample_configs_dir
+    test_machine_created, test_username, sample_configs_dir
 ):
     """Test applying --extra-config on nixos-rebuild."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
     extra_config = sample_configs_dir / "simple.nix"
-
-    # First verify tmux is NOT installed
-    result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
-    initial_has_tmux = result.returncode == 0
 
     # Run rebuild with extra config
     nixos_rebuild_direct(
@@ -95,7 +86,7 @@ def test_extra_config_on_rebuild(
 
 @pytest.mark.requires_orbstack
 def test_extra_config_nonexistent_file(test_machine_created, test_username):
-    """Test that --extra-config with non-existent file fails gracefully."""
+    """Test that --extra-config with a non-existent file fails gracefully."""
     machine_name = test_machine_created
     fake_config = "/tmp/nonexistent-config-12345.nix"
 
@@ -114,15 +105,13 @@ def test_extra_config_nonexistent_file(test_machine_created, test_username):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_extra_config_relative_path(
-    test_machine_created, project_root, test_username, tmp_path
-):
-    """Test --extra-config with relative path via nixos-rebuild."""
+def test_extra_config_relative_path(test_machine_created, project_root, test_username):
+    """Test --extra-config with a relative path via nixos-rebuild."""
     import os
 
     machine_name = test_machine_created
 
-    # Create config file within project directory so relative path works
+    # Create a config file within the project directory so a relative path works
     config_dir = project_root / "test-configs-temp"
     config_dir.mkdir(exist_ok=True)
     extra_config = config_dir / "simple.nix"
@@ -137,11 +126,11 @@ def test_extra_config_relative_path(
 """
     )
 
-    # Change to project root and use relative path
+    # Change to the project root and use a relative path
     original_cwd = os.getcwd()
     try:
         os.chdir(project_root)
-        # Use path relative to project root
+        # Use a path relative to the project root
         relative_path = extra_config.relative_to(project_root)
         nixos_rebuild_direct(
             machine_name=machine_name,
@@ -175,7 +164,6 @@ def test_extra_config_from_nix_extra_config_dir(
     docker_config = (
         project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     )
-    docker_user_config = sample_configs_dir / "docker-user.nix"
 
     # We need to combine docker.nix with user config, so let's create a combined config
     combined_config = sample_configs_dir / "docker-combined.nix"
@@ -217,7 +205,7 @@ def test_extra_config_from_nix_extra_config_dir(
 def test_extra_config_environment_variable_passed(
     test_machine_created, test_username, sample_configs_dir
 ):
-    """Test that NIXOS_EXTRA_CONFIG environment variable is correctly passed to bootstrap script via nixos-rebuild."""
+    """Test that the NIXOS_EXTRA_CONFIG environment variable is correctly passed to a bootstrap script via nixos-rebuild."""
     machine_name = test_machine_created
     extra_config = sample_configs_dir / "with-service.nix"
 
@@ -226,7 +214,7 @@ def test_extra_config_environment_variable_passed(
         username=test_username,
         extra_config=str(extra_config),
     )
-    # The extra config was successfully applied (marker file exists)
+    # The extra config was successfully applied (a marker file exists)
     assert file_exists_on_machine(machine_name, "/etc/test-marker")
 
     # This proves that:

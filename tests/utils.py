@@ -23,8 +23,7 @@ def run_command(
 
     # Print command for debugging - format as a proper shell command
     cmd_str = " ".join(shlex.quote(arg) for arg in cmd)
-    print(f"\n[TEST] Running command: {cmd_str}", file=sys.stderr)
-    print(f"[TEST] Timeout: {timeout}s", file=sys.stderr)
+    print(f"\n[TEST] Running command [{timeout}s]: {cmd_str}", file=sys.stderr)
 
     try:
         result = subprocess.run(
@@ -100,6 +99,29 @@ def delete_machine(machine_name: str, force: bool = True) -> bool:
     return result.returncode == 0
 
 
+def _wait_with_condition(
+    machine_name: str,
+    max_wait: int,
+    condition_func,
+    success_msg: str,
+    timeout_msg: str,
+    stabilize_delay: int = 2,
+) -> bool:
+    """Helper function to wait for a condition with timeout."""
+    elapsed = 0
+    while elapsed < max_wait:
+        if condition_func(machine_name):
+            # Give services a moment to fully initialize
+            time.sleep(stabilize_delay)
+            print(f"[TEST] {success_msg}", file=sys.stderr)
+            return True
+        time.sleep(2)
+        elapsed += 2
+
+    print(f"[TEST] {timeout_msg}", file=sys.stderr)
+    return False
+
+
 def start_machine(machine_name: str, max_wait: int = 30) -> bool:
     """Start an OrbStack machine and wait for it to be running."""
     if not machine_exists(machine_name):
@@ -115,22 +137,14 @@ def start_machine(machine_name: str, max_wait: int = 30) -> bool:
     if result.returncode != 0:
         return False
 
-    # Wait for machine to be running
-    elapsed = 0
-    while elapsed < max_wait:
-        if machine_is_running(machine_name):
-            # Give SSH daemon a moment to fully initialize
-            time.sleep(2)
-            print(f"[TEST] Machine {machine_name} is running", file=sys.stderr)
-            return True
-        time.sleep(2)
-        elapsed += 2
-
-    print(
-        f"[TEST] Machine {machine_name} did not start within {max_wait}s",
-        file=sys.stderr,
+    # Wait for the machine to be running
+    return _wait_with_condition(
+        machine_name,
+        max_wait,
+        machine_is_running,
+        f"Machine {machine_name} is running",
+        f"Machine {machine_name} did not start within {max_wait}s",
     )
-    return False
 
 
 def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
@@ -148,7 +162,7 @@ def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
     if result.returncode != 0:
         return False
 
-    # Wait for machine to be stopped
+    # Wait for the machine to be stopped
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_stopped(machine_name):
@@ -169,8 +183,8 @@ def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
 def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
     """Clone an OrbStack machine from source to destination.
 
-    Ensures source machine is stopped before cloning, then explicitly starts
-    the cloned machine and waits for it to be ready.
+    Ensures the source machine is stopped before cloning, then explicitly starts
+    the cloned machine, then waits for it to be ready.
     """
     if not machine_exists(source_name):
         print(f"[TEST] Source machine {source_name} does not exist", file=sys.stderr)
@@ -180,7 +194,7 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
         print(f"[TEST] Destination machine {dest_name} already exists", file=sys.stderr)
         return False
 
-    # Ensure source machine is stopped
+    # Ensure the source machine is stopped
     if not stop_machine(source_name):
         print(f"[TEST] Failed to stop source machine {source_name}", file=sys.stderr)
         return False
@@ -194,7 +208,7 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
         print(f"[TEST] Failed to clone machine: {result.stderr}", file=sys.stderr)
         return False
 
-    # Verify cloned machine exists
+    # Verify a cloned machine exists
     if not machine_exists(dest_name):
         print(f"[TEST] Cloned machine {dest_name} was not created", file=sys.stderr)
         return False
@@ -210,26 +224,18 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
             )
             return False
 
-    # Wait for cloned machine to be ready (running)
-    elapsed = 0
-    while elapsed < max_wait:
-        if machine_is_running(dest_name):
-            # Give SSH daemon a moment to fully initialize
-            time.sleep(2)
-            print(f"[TEST] Cloned machine {dest_name} is ready", file=sys.stderr)
-            return True
-        time.sleep(2)
-        elapsed += 2
-
-    print(
-        f"[TEST] Cloned machine {dest_name} did not become ready within {max_wait}s",
-        file=sys.stderr,
+    # Wait for the cloned machine to be ready (running)
+    return _wait_with_condition(
+        dest_name,
+        max_wait,
+        machine_is_running,
+        f"Cloned machine {dest_name} is ready",
+        f"Cloned machine {dest_name} did not become ready within {max_wait}s",
     )
-    return False
 
 
 def wait_for_machine_running(machine_name: str, max_wait: int = 60) -> bool:
-    """Wait for machine to be in running state."""
+    """Wait for the machine to be in a running state."""
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_running(machine_name):
@@ -250,7 +256,7 @@ def exec_on_machine(
 
 
 def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
-    """Wait for network to be fully online on the machine.
+    """Wait for the network to be fully online on the machine.
 
     Waits for network-online.target and verifies DNS resolution works.
     This prevents intermittent DNS failures during nix builds.
@@ -269,7 +275,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
             timeout=10,
         )
         if result.returncode == 0:
-            print(f"[TEST] network-online.target is active", file=sys.stderr)
+            print("[TEST] network-online.target is active", file=sys.stderr)
             break
         time.sleep(2)
         elapsed += 2
@@ -289,7 +295,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
         )
         if result.returncode == 0:
             print(
-                f"[TEST] DNS resolution verified (cache.nixos.org reachable)",
+                "[TEST] DNS resolution verified (cache.nixos.org reachable)",
                 file=sys.stderr,
             )
             return True
@@ -300,7 +306,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
         time.sleep(2)
 
     print(
-        f"[TEST] WARNING: DNS resolution still not working after retries",
+        "[TEST] WARNING: DNS resolution still not working after retries",
         file=sys.stderr,
     )
     return False
@@ -319,7 +325,7 @@ def read_file_on_machine(machine_name: str, file_path: str) -> str:
 
 
 def get_installed_packages(machine_name: str) -> list[str]:
-    """Get list of installed packages on NixOS machine."""
+    """Get a list of installed packages on the NixOS machine."""
     result = exec_on_machine(machine_name, ["nix-env", "-q"], check=True)
     return str(result.stdout).strip().splitlines()
 
@@ -430,6 +436,26 @@ def create_machine_only_direct(
     print(f"[TEST] Machine created successfully: {machine_name}", file=sys.stderr)
 
 
+def _print_operation_details(
+    operation: str,
+    machine_name: str,
+    hostname: str,
+    username: str,
+    flake_attr: str,
+    extra_config: str | None = None,
+    recreate: bool = False,
+) -> None:
+    """Helper function to print operation details."""
+    print(f"[TEST] {operation} machine: {machine_name}", file=sys.stderr)
+    print(f"[TEST]   hostname: {hostname}", file=sys.stderr)
+    print(f"[TEST]   username: {username}", file=sys.stderr)
+    print(f"[TEST]   flake_attr: {flake_attr}", file=sys.stderr)
+    if extra_config:
+        print(f"[TEST]   extra_config: {extra_config}", file=sys.stderr)
+    if recreate:
+        print("[TEST]   recreate: True", file=sys.stderr)
+
+
 def create_machine_direct(
     machine_name: str,
     username: str,
@@ -446,14 +472,15 @@ def create_machine_direct(
     This allows test output to be visible in real-time instead of being captured.
     """
     actual_hostname = hostname or machine_name
-    print(f"[TEST] Creating and provisioning machine: {machine_name}", file=sys.stderr)
-    print(f"[TEST]   hostname: {actual_hostname}", file=sys.stderr)
-    print(f"[TEST]   username: {username}", file=sys.stderr)
-    print(f"[TEST]   flake_attr: {flake_attr}", file=sys.stderr)
-    if extra_config:
-        print(f"[TEST]   extra_config: {extra_config}", file=sys.stderr)
-    if recreate:
-        print(f"[TEST]   recreate: True", file=sys.stderr)
+    _print_operation_details(
+        "Creating and provisioning",
+        machine_name,
+        actual_hostname,
+        username,
+        flake_attr,
+        extra_config,
+        recreate,
+    )
 
     provision = import_provision_script()
     provision.create_machine(
@@ -489,19 +516,21 @@ def nixos_rebuild_direct(
     import io
 
     actual_hostname = hostname or machine_name
-    print(f"[TEST] Running nixos-rebuild on machine: {machine_name}", file=sys.stderr)
-    print(f"[TEST]   hostname: {actual_hostname}", file=sys.stderr)
-    print(f"[TEST]   username: {username}", file=sys.stderr)
-    print(f"[TEST]   flake_attr: {flake_attr}", file=sys.stderr)
-    if extra_config:
-        print(f"[TEST]   extra_config: {extra_config}", file=sys.stderr)
+    _print_operation_details(
+        "Running nixos-rebuild on",
+        machine_name,
+        actual_hostname,
+        username,
+        flake_attr,
+        extra_config,
+    )
 
     provision = import_provision_script()
 
-    # Wait for network to be ready to prevent intermittent DNS failures
+    # Wait for the network to be ready to prevent intermittent DNS failures
     wait_for_network_online(machine_name)
 
-    # Capture stderr to return in result
+    # Capture stderr to return in the result
     old_stderr = sys.stderr
     captured_stderr = io.StringIO()
 

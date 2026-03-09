@@ -29,7 +29,7 @@ def pytest_configure(config):
     )
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(items):
     """Auto-mark tests based on conditions."""
     if not orbstack_is_installed():
         skip_orbstack = pytest.mark.skip(reason="OrbStack not installed")
@@ -42,7 +42,7 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session")
 def project_root():
-    """Get the project root directory."""
+    """Get the project's root directory."""
     return get_project_root()
 
 
@@ -51,14 +51,14 @@ def session_timestamp():
     """Generate a single timestamp for the entire test session.
 
     This timestamp is shared by the template machine and all cloned machines,
-    making it easy to identify which test run they belong to.
+    making it easy to identify which test run the machines belong to.
     """
     return int(time.time() * 1000)  # milliseconds
 
 
 @pytest.fixture(scope="session")
 def test_username():
-    """Get username for tests."""
+    """Get the username for tests."""
     return getpass.getuser()
 
 
@@ -68,10 +68,13 @@ def unique_machine_name(request, session_timestamp):
 
     Names follow the pattern: test-{normalized_test_name}-{timestamp}
     where the timestamp is shared across all tests in the session.
+
+    Machine names are truncated to fit within the 63-character DNS hostname
+    limit enforced by NixOS.
     """
-    # Get test name from request and normalize it
+    # Get the test name from the request and normalize it
     test_name = request.node.name
-    # Remove 'test_' prefix if present
+    # Remove the 'test_' prefix if present
     if test_name.startswith("test_"):
         test_name = test_name[5:]
     # Replace underscores and brackets with hyphens, convert to lowercase
@@ -81,7 +84,20 @@ def unique_machine_name(request, session_timestamp):
     # Remove any trailing hyphens
     normalized_name = normalized_name.rstrip("-")
 
-    return f"test-{normalized_name}-{session_timestamp}"
+    machine_name = f"test-{normalized_name}-{session_timestamp}"
+
+    # NixOS enforces a 63-character DNS hostname limit
+    # Truncate if necessary, keeping the timestamp for uniqueness
+    max_length = 63
+    if len(machine_name) > max_length:
+        # Keep timestamp (13 digits) and truncate the test name part
+        timestamp_str = str(session_timestamp)
+        # Reserve space for "test-", timestamp, and a hyphen between them
+        max_test_name_length = max_length - len("test-") - len(timestamp_str) - 1
+        truncated_test_name = normalized_name[:max_test_name_length]
+        machine_name = f"test-{truncated_test_name}-{session_timestamp}"
+
+    return machine_name
 
 
 @pytest.fixture(scope="session")
@@ -100,8 +116,10 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
     template_name = f"test-MASTER-{session_timestamp}"
 
     print(f"\n{'=' * 80}", file=sys.stderr)
-    print(f"[TEST] Creating master template machine: {template_name}", file=sys.stderr)
-    print(f"[TEST] This will be cloned for all tests in this session", file=sys.stderr)
+    print(
+        f"[TEST] Creating the master template machine: {template_name}", file=sys.stderr
+    )
+    print("[TEST] This will be cloned for all tests in this session", file=sys.stderr)
     print(f"{'=' * 80}\n", file=sys.stderr)
 
     # Create and provision the template machine
@@ -109,21 +127,21 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
 
     # Stop the template machine so it can be cloned
     print(
-        f"\n[TEST] Stopping template machine {template_name} to enable cloning...",
+        f"\n[TEST] Stopping the template machine {template_name} to enable cloning...",
         file=sys.stderr,
     )
     if not stop_machine(template_name):
         print(
-            f"[TEST] WARNING: Failed to stop template machine {template_name}",
+            f"[TEST] WARNING: Failed to stop the template machine {template_name}",
             file=sys.stderr,
         )
 
     yield template_name
 
-    # Cleanup: delete template machine after all tests
+    # Cleanup: delete the template machine after all tests
     if machine_exists(template_name):
         print(
-            f"\n[TEST] Cleaning up master template machine: {template_name}",
+            f"\n[TEST] Cleaning up the master template machine: {template_name}",
             file=sys.stderr,
         )
         delete_machine(template_name, force=True)
@@ -140,22 +158,22 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
 
     machine_name = unique_machine_name
 
-    # Clone from template
+    # Clone from the template
     print(
-        f"\n[TEST] Cloning test machine {machine_name} from template {template_machine}",
+        f"\n[TEST] Cloning the test machine {machine_name} from template {template_machine}",
         file=sys.stderr,
     )
     success = clone_machine(template_machine, machine_name)
     if not success:
         raise RuntimeError(
-            f"Failed to clone machine {machine_name} from {template_machine}"
+            f"Failed to clone the machine {machine_name} from {template_machine}"
         )
 
     yield machine_name
 
-    # Cleanup: delete machine if it exists
+    # Cleanup: delete the machine if it exists
     if machine_exists(machine_name):
-        print(f"\n[TEST] Cleaning up test machine: {machine_name}", file=sys.stderr)
+        print(f"\n[TEST] Cleaning up the test machine: {machine_name}", file=sys.stderr)
         delete_machine(machine_name, force=True)
 
 
@@ -175,21 +193,23 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
 
     machine_name = test_machine
 
-    # Ensure machine is running
-    print(f"\n[TEST] Starting machine {machine_name}...", file=sys.stderr)
+    # Ensure the machine is running
+    print(f"\n[TEST] Starting the machine {machine_name}...", file=sys.stderr)
     start_machine(machine_name)
 
-    # Apply Nix configuration with correct hostname and username
+    # Apply the Nix configuration with the correct hostname and username
     # This ensures cloned machines get their unique hostname set correctly
-    # Note: nixos_rebuild_direct automatically sets hostname after rebuild
-    print(f"\n[TEST] Applying Nix configuration to {machine_name}...", file=sys.stderr)
+    # Note: nixos_rebuild_direct automatically sets the hostname after rebuild
+    print(
+        f"\n[TEST] Applying the Nix configuration to {machine_name}...", file=sys.stderr
+    )
     nixos_rebuild_direct(
         machine_name=machine_name, hostname=machine_name, username=test_username
     )
 
     yield machine_name
 
-    # Cleanup is handled by test_machine fixture
+    # Cleanup is handled by the test_machine fixture
 
 
 @pytest.fixture(scope="session")
@@ -227,7 +247,7 @@ def sample_configs_dir(project_root, tmp_path_factory):
 """
     )
 
-    # Config that adds a user to docker group (for use with docker.nix)
+    # Config that adds a user to the docker group (for use with docker.nix)
     docker_user_config = configs_dir / "docker-user.nix"
     docker_user_config.write_text(
         """{ config, pkgs, username, ... }:
@@ -246,7 +266,7 @@ def sample_configs_dir(project_root, tmp_path_factory):
 {
   environment.systemPackages = with pkgs; [
     tmux
-  # Missing closing bracket
+  # Missing the closing bracket
 }
 """
     )

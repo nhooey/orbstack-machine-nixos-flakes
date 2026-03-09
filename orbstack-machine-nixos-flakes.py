@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import getpass
-import os
 import subprocess
 import sys
 import time
@@ -91,12 +90,12 @@ def machine_is_running(
 def wait_for_machine_ready(
     machine_name: str, max_wait: int = 60, verbose: bool = False, timeout: int = 600
 ) -> bool:
-    """Wait for machine to be running and SSH-ready."""
+    """Wait for the machine to be running and SSH-ready."""
     print("==> Waiting for machine to become SSH-ready...")
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_running(machine_name, verbose=verbose, timeout=timeout):
-            # Give SSH daemon a moment to fully initialize
+            # Give the SSH daemon a moment to fully initialize
             time.sleep(2)
             print("    Machine is ready.")
             return True
@@ -132,7 +131,7 @@ def copy_local_flake(
         print(f"Error: No flake files found in {flake_repo}", file=sys.stderr)
         sys.exit(1)
 
-    # Create temporary directory
+    # Create a temporary directory
     run_command(
         ["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR],
         verbose=verbose,
@@ -164,7 +163,16 @@ def copy_local_flake(
 
 
 def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = 600) -> str:
-    """Get the flake path by copying local files to the machine."""
+    """Get the flake path by copying local files to the machine.
+
+    Args:
+        machine_name: Name of the OrbStack machine.
+        verbose: Enable verbose output.
+        timeout: Command timeout in seconds.
+
+    Returns:
+        Path to the flake directory on the machine.
+    """
     # Use flake repository directory
     return copy_local_flake(
         machine_name, FLAKE_REPO_DIR, verbose=verbose, timeout=timeout
@@ -174,7 +182,7 @@ def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = 600)
 def copy_bootstrap_script(
     machine_name: str, verbose: bool = False, timeout: int = 600
 ) -> str:
-    """Copy bootstrap script to VM and make it executable. Returns VM script path."""
+    """Copy the bootstrap script to VM and make it executable. Returns VM script path."""
     # Get the bootstrap script path (relative to this script)
     script_dir = Path(__file__).parent
     bootstrap_script = script_dir / BOOTSTRAP_SCRIPT_NAME
@@ -185,7 +193,7 @@ def copy_bootstrap_script(
         )
         sys.exit(1)
 
-    # Create temporary directory
+    # Create a temporary directory
     run_command(
         ["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR],
         verbose=verbose,
@@ -236,21 +244,21 @@ def copy_nix_extra_config_dir(
         timeout=timeout,
     )
 
-    # Get all files with their relative paths and destination paths
+    # Get all the files with their relative paths and destination paths
     files = [
         (item, item.relative_to(nix_extra_config_dir))
         for item in nix_extra_config_dir.rglob("*")
         if item.is_file()
     ]
 
-    # Get unique parent directories that need to be created
+    # Get the unique parent directories that need to be created
     parent_dirs = {
         f"{dest_dir}/{rel_path.parent}"
         for _, rel_path in files
         if rel_path.parent != Path(".")
     }
 
-    # Create all parent directories
+    # Create all the parent directories
     for parent_dir in parent_dirs:
         run_command(
             ["orb", "--machine", machine_name, "mkdir", "-p", parent_dir],
@@ -258,7 +266,7 @@ def copy_nix_extra_config_dir(
             timeout=timeout,
         )
 
-    # Copy all files
+    # Copy all the files
     for src_path, rel_path in files:
         dest_path = f"{dest_dir}/{rel_path}"
         run_command(
@@ -271,8 +279,8 @@ def copy_nix_extra_config_dir(
 def copy_extra_config(
     machine_name: str, extra_config: str, verbose: bool = False, timeout: int = 600
 ) -> str:
-    """Copy extra config file to VM. Returns VM path."""
-    # Try to resolve as absolute path first, then relative to current directory
+    """Copy the extra config file to the VM. Returns the VM path."""
+    # Try to resolve as an absolute path first, then relative to the current directory
     extra_config_path = Path(extra_config)
     if not extra_config_path.is_absolute():
         extra_config_path = Path.cwd() / extra_config
@@ -280,7 +288,10 @@ def copy_extra_config(
     extra_config_path = extra_config_path.resolve()
 
     if not extra_config_path.exists():
-        print(f"Error: User config file not found: {extra_config}", file=sys.stderr)
+        print(
+            f"Error: The user config file was not found: {extra_config}",
+            file=sys.stderr,
+        )
 
         # Try to suggest similar files if in orbstack-nix-config/extra directory
         extra_dir_path = f"{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
@@ -300,7 +311,7 @@ def copy_extra_config(
 
     print(f"    Copying extra config to VM: {extra_config_path}")
 
-    # Create temporary directory
+    # Create a temporary directory
     run_command(
         ["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR],
         verbose=verbose,
@@ -332,15 +343,6 @@ def copy_extra_config(
 def get_architecture(
     arch: str | None = None, verbose: bool = False, timeout: int = 600
 ) -> tuple[str, str]:
-    """
-    Get architecture mapping for OrbStack and Nix.
-
-    Args:
-        arch: Architecture string (aarch64/arm64/x86_64/amd64) or None for host detection
-
-    Returns:
-        Tuple of (orbstack_arch, nix_arch) e.g. ("arm64", "aarch64")
-    """
     # If no arch specified, detect from host
     if arch is None:
         result = run_command(
@@ -390,7 +392,7 @@ def run_nixos_rebuild(
     verbose: bool = False,
     timeout: int = 600,
 ) -> None:
-    """Run nixos-rebuild switch by executing it on the VM directly."""
+    """Run the nixos-rebuild switch by executing it on the VM directly."""
     if is_initial_provision:
         print("==> Provisioning NixOS configuration from flake...")
     else:
@@ -426,7 +428,7 @@ def run_nixos_rebuild(
 
     # Run the bootstrap script with environment variables
     # Use a long timeout since nixos-rebuild can take a while,
-    # especially on first run when it needs to download packages
+    # especially on the first run when it needs to download packages
     if not is_initial_provision:
         print(f"    Building and deploying: {flake_ref}")
     run_command(
@@ -458,7 +460,7 @@ def print_provisioning_complete(machine_name: str, username: str) -> None:
     print()
     print("The following user has been configured:")
     print(f"    Username: {username}")
-    print(f"    Password: nixos (change after first login)")
+    print("    Password: nixos (change after first login)")
     print()
     print("Execute commands directly:")
     print(f"    orb --machine {machine_name} <command>")
@@ -482,7 +484,7 @@ def create_machine_only(
     This is useful for creating a base machine that can be cloned later,
     avoiding the expensive provisioning step for each test.
     """
-    # Check if machine already exists
+    # Check if the machine already exists
     if machine_exists(machine_name, verbose=verbose, timeout=timeout):
         if recreate:
             print(f"==> Deleting existing machine: {machine_name}")
@@ -507,9 +509,7 @@ def create_machine_only(
 
     # Step 2: Wait for the machine to be ready
     if not wait_for_machine_ready(machine_name, verbose=verbose, timeout=timeout):
-        print(
-            f"Error: Machine did not become ready within 60 seconds.", file=sys.stderr
-        )
+        print("Error: Machine did not become ready within 60 seconds.", file=sys.stderr)
         sys.exit(1)
 
 

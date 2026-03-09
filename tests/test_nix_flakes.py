@@ -8,15 +8,12 @@ from tests.utils import (
     BOOTSTRAP_SCRIPT_NAME,
     FLAKE_REPO_DIR,
     TMP_BASE_DIR,
-    create_machine_direct,
     exec_on_machine,
     file_exists_on_machine,
-    get_provision_script_path,
     machine_exists,
     machine_is_running,
     nixos_rebuild_direct,
     read_file_on_machine,
-    run_command,
     verify_flake_deployed,
 )
 
@@ -24,7 +21,7 @@ from tests.utils import (
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_flake_files_copied_to_etc_nixos(test_machine_created):
-    """Test that flake files are copied to /etc/nixos/ correctly."""
+    """Test that the flake files are copied to /etc/nixos/ correctly."""
     machine_name = test_machine_created
 
     # Verify the standard flake files exist
@@ -39,7 +36,7 @@ def test_flake_files_copied_to_etc_nixos(test_machine_created):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_flake_content_matches_source(test_machine_created, project_root):
-    """Test that flake content on VM matches source files."""
+    """Test that the flake content on the VM matches the source files."""
     machine_name = test_machine_created
 
     # Read flake.nix from orbstack-nix-config (machine config, not dev shell)
@@ -54,12 +51,9 @@ def test_flake_content_matches_source(test_machine_created, project_root):
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_nixos_rebuild_on_existing_machine(
-    test_machine_created, project_root, test_username
-):
+def test_nixos_rebuild_on_existing_machine(test_machine_created, test_username):
     """Test running nixos-rebuild on an existing machine."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
     # Machine should exist and be running
     assert machine_exists(machine_name)
@@ -77,16 +71,13 @@ def test_nixos_rebuild_on_existing_machine(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_rebuild_applies_configuration_changes(
-    test_machine_created, project_root, test_username
-):
-    """Test that rebuild actually applies configuration changes."""
+def test_rebuild_applies_configuration_changes(test_machine_created, test_username):
+    """Test that the rebuild actually applies configuration changes."""
     machine_name = test_machine_created
-    provision_script = get_provision_script_path()
 
-    # Run rebuild (should be idempotent)
+    # Run the rebuild (should be idempotent)
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
-    # Check that some expected packages from configuration.nix are available
+    # Check that some of the expected packages from configuration.nix are available
     # These are defined in the base configuration
     result = exec_on_machine(machine_name, ["which", "git"], check=False)
     assert result.returncode == 0, "git should be installed from configuration.nix"
@@ -96,9 +87,8 @@ def test_rebuild_applies_configuration_changes(
 
 
 @pytest.mark.requires_orbstack
-def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
-    """Test that nixos-rebuild fails gracefully on non-existent machine."""
-    provision_script = get_provision_script_path()
+def test_rebuild_fails_on_nonexistent_machine(test_username):
+    """Test that nixos-rebuild fails gracefully on a non-existent machine."""
     fake_machine = "nonexistent-machine-12345"
 
     result = nixos_rebuild_direct(machine_name=fake_machine, username=test_username)
@@ -111,24 +101,24 @@ def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_different_flake_attributes(test_machine_created):
-    """Test that machine is created with default flake attribute."""
+    """Test that the machine is created with the default flake attribute."""
     machine_name = test_machine_created
 
-    # Machine created (cloned) with default attribute
+    # Machine created (cloned) with the default attribute
     assert machine_exists(machine_name)
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_flake_evaluation_uses_impure_mode(test_machine_created):
-    """Test that flake evaluation works in impure mode for environment variables."""
+    """Test that the flake evaluation works in impure mode for environment variables."""
     machine_name = test_machine_created
 
     # The fact that the machine was created with hostname and username
     # from environment variables proves impure mode is working
     # Let's verify the bootstrap script uses --impure flag
 
-    # Check that bootstrap script exists and contains --impure
+    # Check that a bootstrap script exists and contains --impure
     bootstrap_path = f"{TMP_BASE_DIR}/{BOOTSTRAP_SCRIPT_NAME}"
     result = exec_on_machine(machine_name, ["cat", bootstrap_path], check=False)
 
@@ -155,7 +145,7 @@ def test_system_was_built_from_flake(test_machine_created):
         check=False,
     )
 
-    # If this succeeds, we know the flake is properly set up
+    # If this succeeds, we know the flake is properly set up.
     # The exact version doesn't matter, just that it evaluates
     if result.returncode != 0:
         # Alternative check: see if system.build.toplevel exists
