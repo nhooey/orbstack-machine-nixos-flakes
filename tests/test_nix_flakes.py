@@ -5,19 +5,19 @@ from __future__ import annotations
 import pytest
 
 from tests.utils import (
-    create_machine_direct,
-    nixos_rebuild_direct,
-    machine_exists,
-    machine_is_running,
-    verify_flake_deployed,
-    file_exists_on_machine,
-    read_file_on_machine,
-    exec_on_machine,
-    run_command,
-    get_provision_script_path,
-    TMP_BASE_DIR,
     BOOTSTRAP_SCRIPT_NAME,
     FLAKE_REPO_DIR,
+    TMP_BASE_DIR,
+    create_machine_direct,
+    exec_on_machine,
+    file_exists_on_machine,
+    get_provision_script_path,
+    machine_exists,
+    machine_is_running,
+    nixos_rebuild_direct,
+    read_file_on_machine,
+    run_command,
+    verify_flake_deployed,
 )
 
 

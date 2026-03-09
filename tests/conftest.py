@@ -9,12 +9,12 @@ from typing import Generator
 import pytest
 
 from tests.utils import (
+    clone_machine,
+    create_machine_direct,
     delete_machine,
+    get_project_root,
     machine_exists,
     orbstack_is_installed,
-    get_project_root,
-    create_machine_direct,
-    clone_machine,
 )
 
 
@@ -94,6 +94,7 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
     The template is stopped after creation to enable cloning.
     """
     import sys
+
     from tests.utils import stop_machine
 
     template_name = f"test-MASTER-{session_timestamp}"
@@ -169,6 +170,7 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     doesn't update these parameters.
     """
     import sys
+
     from tests.utils import nixos_rebuild_direct, start_machine
 
     machine_name = test_machine

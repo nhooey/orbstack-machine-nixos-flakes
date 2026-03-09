@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 import shutil
+
 import pytest
 
 from tests.utils import (
-    create_machine_direct,
-    nixos_rebuild_direct,
-    machine_exists,
-    file_exists_on_machine,
-    exec_on_machine,
-    run_command,
-    get_provision_script_path,
-    PROVISION_SCRIPT_NAME,
     BOOTSTRAP_SCRIPT_NAME,
-    FLAKE_REPO_DIR,
     FLAKE_EXTRA_DIR,
+    FLAKE_REPO_DIR,
+    PROVISION_SCRIPT_NAME,
     TMP_BASE_DIR,
+    create_machine_direct,
+    exec_on_machine,
+    file_exists_on_machine,
+    get_provision_script_path,
+    machine_exists,
+    nixos_rebuild_direct,
+    run_command,
 )
 
 

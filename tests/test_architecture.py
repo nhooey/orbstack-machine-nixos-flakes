@@ -8,11 +8,11 @@ import pytest
 
 from tests.utils import (
     create_machine_direct,
-    nixos_rebuild_direct,
-    machine_exists,
     get_nix_system_architecture,
-    run_command,
     import_provision_script,
+    machine_exists,
+    nixos_rebuild_direct,
+    run_command,
 )
 
 

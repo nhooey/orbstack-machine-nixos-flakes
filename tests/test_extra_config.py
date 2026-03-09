@@ -5,16 +5,16 @@ from __future__ import annotations
 import pytest
 
 from tests.utils import (
+    FLAKE_EXTRA_DIR,
+    FLAKE_REPO_DIR,
     create_machine_direct,
-    nixos_rebuild_direct,
-    machine_exists,
-    file_exists_on_machine,
     exec_on_machine,
+    file_exists_on_machine,
+    get_provision_script_path,
+    machine_exists,
+    nixos_rebuild_direct,
     run_command,
     wait_for_network_online,
-    get_provision_script_path,
-    FLAKE_REPO_DIR,
-    FLAKE_EXTRA_DIR,
 )
 
 

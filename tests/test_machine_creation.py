@@ -5,16 +5,16 @@ from __future__ import annotations
 import pytest
 
 from tests.utils import (
+    create_machine_direct,
+    delete_machine,
+    get_hostname,
+    get_provision_script_path,
     machine_exists,
     machine_is_running,
-    wait_for_machine_running,
-    user_exists,
-    get_hostname,
-    delete_machine,
-    run_command,
-    create_machine_direct,
     nixos_rebuild_direct,
-    get_provision_script_path,
+    run_command,
+    user_exists,
+    wait_for_machine_running,
 )
 
 
