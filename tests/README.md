@@ -43,13 +43,13 @@ tests/
 pytest
 ```
 
-### Run specific test file
+### Run a specific test file
 
 ```bash
 pytest tests/test_machine_creation.py
 ```
 
-### Run specific test
+### Run a specific test
 
 ```bash
 pytest tests/test_machine_creation.py::test_create_machine_default_settings
@@ -90,6 +90,7 @@ pytest -s
 ### Machine Creation Tests (`test_machine_creation.py`)
 
 Tests basic machine creation, deletion, and management:
+
 - Default settings
 - Custom hostname/username
 - Machine already exists error handling
@@ -99,6 +100,7 @@ Tests basic machine creation, deletion, and management:
 ### Nix Flakes Tests (`test_nix_flakes.py`)
 
 Tests Nix flakes integration:
+
 - Flake files copied to `/etc/nixos/`
 - Flake content matches source
 - `nixos-rebuild` on existing machines
@@ -108,6 +110,7 @@ Tests Nix flakes integration:
 ### Extra Config Tests (`test_extra_config.py`)
 
 Tests `--extra-config` functionality:
+
 - Simple package installation
 - Marker file verification
 - Extra config on rebuild
@@ -118,16 +121,18 @@ Tests `--extra-config` functionality:
 ### Nix Extra Config Directory Tests (`test_nix_extra_config_dir.py`)
 
 Tests `orbstack-nix-config/extra/` directory copying:
+
 - Directory recursively copied to VM
 - Nested structure preservation
 - File content verification
 - Recopy on rebuild
 - Multiple files handling
-- Works without directory
+- Works without a directory
 
 ### Architecture Tests (`test_architecture.py`)
 
 Tests architecture detection and mapping:
+
 - Auto-detection of host architecture
 - Explicit ARM architecture flags (aarch64, arm64)
 - Explicit x86 architecture flags (x86_64, amd64)
@@ -138,6 +143,7 @@ Tests architecture detection and mapping:
 ### End-to-End Tests (`test_e2e.py`)
 
 Complete workflow tests:
+
 - Full create → verify → rebuild → delete workflow
 - Multiple sequential rebuilds (idempotency)
 - SSH connectivity
@@ -187,7 +193,7 @@ Tests creating/provisioning machines may take longer and have explicit timeouts 
 pytest -v -s
 ```
 
-### Run single failing test
+### Run a single failing test
 
 ```bash
 pytest tests/test_file.py::test_name -v -s
@@ -237,7 +243,7 @@ def test_my_feature(test_machine, project_root, test_username):
 These tests can be integrated into CI/CD pipelines. Note that:
 
 1. OrbStack must be installed on the CI runner
-2. Tests may take 10-30 minutes to complete
+2. Tests may take 10–30 minutes to complete
 3. Consider running only fast tests in CI: `pytest -m "not slow"`
 4. Use parallel execution: `pytest -n auto`
 
@@ -253,7 +259,7 @@ Increase timeout in `test_machine_creation.py` or check OrbStack performance
 
 ### Import errors
 
-Ensure you're running from project root and test dependencies are installed:
+Ensure you're running from the project root and test dependencies are installed:
 
 ```bash
 pip install -e ".[dev,test]"
@@ -261,7 +267,9 @@ pip install -e ".[dev,test]"
 
 ### ModuleNotFoundError: No module named 'orbstack_nixos_provision'
 
-This is expected because `orbstack-machine-nixos-flakes.py` has a hyphen in the filename. Tests use `import_provision_script()` from `tests/utils.py` to handle this. If you're writing new tests that need to import from the main script, use:
+This is expected because `orbstack-machine-nixos-flakes.py` has a hyphen in the filename. Tests use
+`import_provision_script()` from `tests/utils.py` to handle this. If you're writing new tests that need to import from
+the main script, use:
 
 ```python
 from tests.utils import import_provision_script

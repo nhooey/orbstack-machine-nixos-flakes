@@ -5,15 +5,10 @@ from __future__ import annotations
 import pytest
 
 from tests.utils import (
-    BOOTSTRAP_SCRIPT_NAME,
-    FLAKE_REPO_DIR,
-    TMP_BASE_DIR,
-    exec_on_machine,
     file_exists_on_machine,
     machine_exists,
     machine_is_running,
     nixos_rebuild_direct,
-    read_file_on_machine,
     verify_flake_deployed,
 )
 
@@ -63,5 +58,3 @@ def test_034_rebuild_fails_on_nonexistent_machine(test_username):
     # Should fail
     assert result.returncode != 0
     assert "does not exist" in result.stderr.lower()
-
-

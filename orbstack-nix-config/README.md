@@ -1,6 +1,7 @@
 # OrbStack NixOS Machine Configuration
 
-This directory contains the NixOS configuration for OrbStack machines provisioned by the `orbstack-machine-nixos-flakes.py` tool.
+This directory contains the NixOS configuration for OrbStack machines provisioned by the
+`orbstack-machine-nixos-flakes.py` tool.
 
 ## Structure
 
@@ -20,17 +21,20 @@ orbstack-nix-config/
 ### `flake.nix`
 
 The main flake defining NixOS configurations for:
+
 - `default` - aarch64-linux (Apple Silicon)
 - `x86_64` - x86_64-linux
 
 Supports environment variables for customization:
+
 - `NIXOS_HOSTNAME` - Set hostname during provisioning
 - `NIXOS_USERNAME` - Set username during provisioning
-- `NIXOS_EXTRA_CONFIG` - Path to additional config file
+- `NIXOS_EXTRA_CONFIG` - Path to an additional config file
 
 ### `configuration.nix`
 
 Base NixOS system configuration including:
+
 - Essential packages (vim, git, curl, wget, htop)
 - SSH daemon configuration
 - User configuration with sudo access
@@ -42,7 +46,9 @@ Base NixOS system configuration including:
 Contains optional configuration modules that can be used with `--extra-config`:
 
 #### `extra/lib/docker.nix`
+
 Enables Docker support. Use with:
+
 ```bash
 ./orbstack-machine-nixos-flakes.py create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
@@ -87,11 +93,13 @@ The flake automatically imports `../user-extra.nix` if it exists.
 ### Manual Rebuilds
 
 From inside the machine:
+
 ```bash
 sudo nixos-rebuild switch --flake /etc/nixos#default --impure
 ```
 
 From the host:
+
 ```bash
 ./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
 ```
@@ -105,6 +113,7 @@ From the host:
 3. Use it with `--extra-config`
 
 Example (`extra/lib/postgresql.nix`):
+
 ```nix
 { config, pkgs, ... }:
 
@@ -123,6 +132,7 @@ Edit `configuration.nix` to change system-wide settings. Changes apply to all ne
 ### Architecture-Specific Configuration
 
 The flake provides separate configurations for different architectures:
+
 - Use `#default` for aarch64 (Apple Silicon)
 - Use `#x86_64` for x86_64 systems
 
@@ -131,12 +141,14 @@ The provisioning script selects the appropriate one automatically.
 ## Development
 
 To test configuration changes without provisioning:
+
 ```bash
 cd orbstack-nix-config
 nix flake check
 ```
 
 To evaluate a specific configuration:
+
 ```bash
 nix eval .#nixosConfigurations.default.config.system.build.toplevel
 ```
