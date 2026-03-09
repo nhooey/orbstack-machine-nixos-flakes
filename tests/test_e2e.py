@@ -16,6 +16,9 @@ from tests.utils import (
     user_exists,
     get_hostname,
     run_command,
+    get_provision_script_path,
+    FLAKE_REPO_DIR,
+    FLAKE_EXTRA_DIR,
 )
 
 
@@ -26,7 +29,7 @@ def test_full_workflow_create_verify_rebuild_delete(
 ):
     """Test complete workflow: create → verify → rebuild → verify → delete."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Step 1: Verify machine was created (by fixture)
     print("\n=== Step 1: Verifying machine was created ===")
@@ -74,7 +77,7 @@ def test_multiple_sequential_rebuilds(
 ):
     """Test multiple sequential rebuilds to ensure idempotency."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Rebuild 1: No extra config
     print("\n=== Rebuild 1: No extra config ===")
@@ -121,7 +124,7 @@ def test_complete_docker_workflow(test_machine_created, project_root, test_usern
     machine_name = test_machine_created
 
     # Create combined Docker config
-    docker_config = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
+    docker_config = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     combined_config = sample_configs_dir / "docker-full.nix"
     combined_config.write_text(
         f"""{{ config, pkgs, username, ... }}:
@@ -160,7 +163,7 @@ def test_complete_docker_workflow(test_machine_created, project_root, test_usern
 def test_persistence_after_rebuild(test_machine_created, project_root, test_username):
     """Test that configuration persists correctly after rebuilds."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Create a test file in the user's home directory
     test_file_content = "This is a test file"

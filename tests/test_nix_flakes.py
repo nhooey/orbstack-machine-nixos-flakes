@@ -14,6 +14,10 @@ from tests.utils import (
     read_file_on_machine,
     exec_on_machine,
     run_command,
+    get_provision_script_path,
+    TMP_BASE_DIR,
+    BOOTSTRAP_SCRIPT_NAME,
+    FLAKE_REPO_DIR,
 )
 
 
@@ -39,7 +43,7 @@ def test_flake_content_matches_source(test_machine_created, project_root):
     machine_name = test_machine_created
 
     # Read flake.nix from orbstack-nix-config (machine config, not dev shell)
-    source_flake = (project_root / "orbstack-nix-config/flake.nix").read_text()
+    source_flake = (project_root / FLAKE_REPO_DIR / "flake.nix").read_text()
 
     # Read flake.nix from VM
     vm_flake = read_file_on_machine(machine_name, "/etc/nixos/flake.nix")
@@ -53,7 +57,7 @@ def test_flake_content_matches_source(test_machine_created, project_root):
 def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, test_username):
     """Test running nixos-rebuild on an existing machine."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Machine should exist and be running
     assert machine_exists(machine_name)
@@ -74,7 +78,7 @@ def test_nixos_rebuild_on_existing_machine(test_machine_created, project_root, t
 def test_rebuild_applies_configuration_changes(test_machine_created, project_root, test_username):
     """Test that rebuild actually applies configuration changes."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Run rebuild (should be idempotent)
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
@@ -90,7 +94,7 @@ def test_rebuild_applies_configuration_changes(test_machine_created, project_roo
 @pytest.mark.requires_orbstack
 def test_rebuild_fails_on_nonexistent_machine(project_root, test_username):
     """Test that nixos-rebuild fails gracefully on non-existent machine."""
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
     fake_machine = "nonexistent-machine-12345"
 
     result = nixos_rebuild_direct(machine_name=fake_machine, username=test_username)
@@ -120,9 +124,10 @@ def test_flake_evaluation_uses_impure_mode(test_machine_created):
     # from environment variables proves impure mode is working
     # Let's verify the bootstrap script uses --impure flag
 
-    # Check that /tmp/orbstack-nixos-provision/bootstrap-nixos.sh exists and contains --impure
+    # Check that bootstrap script exists and contains --impure
+    bootstrap_path = f"{TMP_BASE_DIR}/{BOOTSTRAP_SCRIPT_NAME}"
     result = exec_on_machine(
-        machine_name, ["cat", "/tmp/orbstack-nixos-provision/bootstrap-nixos.sh"], check=False
+        machine_name, ["cat", bootstrap_path], check=False
     )
 
     if result.returncode == 0:

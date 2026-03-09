@@ -20,7 +20,16 @@ from pathlib import Path
 # Global State
 # ============================================================================
 
-VERBOSE = False
+# Paths
+TMP_BASE_DIR = "/tmp/orbstack-machine-nixos-flakes"
+FLAKE_DEST_DIR = "/etc/nixos"
+FLAKE_REPO_DIR = "orbstack-nix-config"
+FLAKE_EXTRA_DIR = "extra"
+BOOTSTRAP_SCRIPT_NAME = "bootstrap-nixos.sh"
+EXTRA_CONFIG_FILENAME = "extra-config.nix"
+
+# Script metadata
+SCRIPT_NAME = "orbstack-machine-nixos-flakes.py"
 
 
 # ============================================================================
@@ -29,11 +38,11 @@ VERBOSE = False
 
 
 def run_command(
-    cmd: list[str], check: bool = True, capture_output: bool = False, timeout: int | None = None
+    cmd: list[str], check: bool = True, capture_output: bool = False, timeout: int | None = 600, verbose: bool = False
 ) -> subprocess.CompletedProcess:
-    """Run a shell command with optional timeout."""
-    if VERBOSE:
-        print(f"[VERBOSE] Running: {' '.join(cmd)}", file=sys.stderr)
+    """Run a shell command with an optional timeout."""
+    if verbose:
+        print(f"[VERBOSE] Running [{timeout}s]: {' '.join(cmd)}", file=sys.stderr)
     if capture_output:
         return subprocess.run(cmd, check=check, capture_output=True, text=True, timeout=timeout)
     else:
@@ -45,18 +54,18 @@ def run_command(
 # ============================================================================
 
 
-def machine_exists(machine_name: str) -> bool:
+def machine_exists(machine_name: str, verbose: bool = False) -> bool:
     """Check if the OrbStack machine already exists."""
-    result = run_command(["orb", "list"], capture_output=True)
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose)
     for line in result.stdout.splitlines():
         if line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} "):
             return True
     return False
 
 
-def machine_is_running(machine_name: str) -> bool:
+def machine_is_running(machine_name: str, verbose: bool = False) -> bool:
     """Check if the machine is running."""
-    result = run_command(["orb", "list"], capture_output=True)
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose)
     for line in result.stdout.splitlines():
         if (
             line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} ")
@@ -65,12 +74,12 @@ def machine_is_running(machine_name: str) -> bool:
     return False
 
 
-def wait_for_machine_ready(machine_name: str, max_wait: int = 60) -> bool:
+def wait_for_machine_ready(machine_name: str, max_wait: int = 60, verbose: bool = False) -> bool:
     """Wait for machine to be running and SSH-ready."""
     print("==> Waiting for machine to become SSH-ready...")
     elapsed = 0
     while elapsed < max_wait:
-        if machine_is_running(machine_name):
+        if machine_is_running(machine_name, verbose=verbose):
             # Give SSH daemon a moment to fully initialize
             time.sleep(2)
             print("    Machine is ready.")
@@ -85,13 +94,12 @@ def wait_for_machine_ready(machine_name: str, max_wait: int = 60) -> bool:
 # ============================================================================
 
 
-def copy_local_flake(machine_name: str, flake_repo: str) -> str:
+def copy_local_flake(machine_name: str, flake_repo: str, verbose: bool = False) -> str:
     """Copy local flake files to the machine. Returns flake path on VM."""
     print("==> Copying local flake files to machine...")
 
     # Use /etc/nixos as the destination since we're provisioning the entire system
-    flake_dest = "/etc/nixos"
-    tmp_base_dir = "/tmp/orbstack-nixos-provision"
+    flake_dest = FLAKE_DEST_DIR
 
     # Determine which files to copy
     flake_dir = Path(flake_repo)
@@ -107,68 +115,61 @@ def copy_local_flake(machine_name: str, flake_repo: str) -> str:
         sys.exit(1)
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", tmp_base_dir])
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
 
     # Create /etc/nixos directory if it doesn't exist
-    run_command(["orb", "--machine", machine_name, "sudo", "mkdir", "-p", flake_dest])
+    run_command(["orb", "--machine", machine_name, "sudo", "mkdir", "-p", flake_dest], verbose=verbose)
 
-    # Copy files one by one to /tmp/orbstack-nixos-provision first, then move to /etc/nixos with sudo
     for file_path, file_name in files_to_copy:
-        tmp_path = f"{tmp_base_dir}/{file_name}"
+        tmp_path = f"{TMP_BASE_DIR}/{file_name}"
         dest_path = f"{flake_dest}/{file_name}"
-
-        # Push to /tmp/orbstack-nixos-provision (no sudo needed)
-        run_command(["orb", "push", "--machine", machine_name, str(file_path), tmp_path])
-
-        # Move to /etc/nixos with sudo
-        run_command(["orb", "--machine", machine_name, "sudo", "mv", tmp_path, dest_path])
+        run_command(["orb", "push", "--machine", machine_name, str(file_path), tmp_path], verbose=verbose)
+        run_command(["orb", "--machine", machine_name, "sudo", "mv", tmp_path, dest_path], verbose=verbose)
 
     return flake_dest
 
 
-def get_flake_path(machine_name: str) -> str:
+def get_flake_path(machine_name: str, verbose: bool = False) -> str:
     """Get the flake path by copying local files to the machine."""
-    # Use orbstack-nix-config directory as flake repository
-    return copy_local_flake(machine_name, "orbstack-nix-config")
+    # Use flake repository directory
+    return copy_local_flake(machine_name, FLAKE_REPO_DIR, verbose=verbose)
 
 
-def copy_bootstrap_script(machine_name: str) -> str:
+def copy_bootstrap_script(machine_name: str, verbose: bool = False) -> str:
     """Copy bootstrap script to VM and make it executable. Returns VM script path."""
     # Get the bootstrap script path (relative to this script)
     script_dir = Path(__file__).parent
-    bootstrap_script = script_dir / "bootstrap-nixos.sh"
-    tmp_base_dir = "/tmp/orbstack-nixos-provision"
+    bootstrap_script = script_dir / BOOTSTRAP_SCRIPT_NAME
 
     if not bootstrap_script.exists():
         print(f"Error: Bootstrap script not found at {bootstrap_script}", file=sys.stderr)
         sys.exit(1)
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", tmp_base_dir])
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
 
     # Copy bootstrap script to VM
-    vm_script_path = f"{tmp_base_dir}/bootstrap-nixos.sh"
-    run_command(["orb", "push", "--machine", machine_name, str(bootstrap_script), vm_script_path])
+    vm_script_path = f"{TMP_BASE_DIR}/{BOOTSTRAP_SCRIPT_NAME}"
+    run_command(["orb", "push", "--machine", machine_name, str(bootstrap_script), vm_script_path], verbose=verbose)
 
     # Make it executable
-    run_command(["orb", "--machine", machine_name, "chmod", "+x", vm_script_path])
+    run_command(["orb", "--machine", machine_name, "chmod", "+x", vm_script_path], verbose=verbose)
 
     return vm_script_path
 
 
-def copy_nix_extra_config_dir(machine_name: str) -> None:
-    """Recursively copy orbstack-nix-config/extra directory to VM if it exists."""
-    nix_extra_config_dir = Path.cwd() / "orbstack-nix-config" / "extra"
-    tmp_base_dir = "/tmp/orbstack-nixos-provision"
+def copy_nix_extra_config_dir(machine_name: str, verbose: bool = False) -> None:
+    """Recursively copy flake extra directory to VM if it exists."""
+    nix_extra_config_dir = Path.cwd() / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
 
     if not nix_extra_config_dir.exists() or not nix_extra_config_dir.is_dir():
         return
 
-    print(f"    Copying orbstack-nix-config/extra directory to VM...")
+    print(f"    Copying {FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR} directory to VM...")
 
     # Create the destination directory on VM
-    dest_dir = f"{tmp_base_dir}/orbstack-nix-config/extra"
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", dest_dir])
+    dest_dir = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", dest_dir], verbose=verbose)
 
     # Get all files with their relative paths and destination paths
     files = [
@@ -184,15 +185,15 @@ def copy_nix_extra_config_dir(machine_name: str) -> None:
 
     # Create all parent directories
     for parent_dir in parent_dirs:
-        run_command(["orb", "--machine", machine_name, "mkdir", "-p", parent_dir])
+        run_command(["orb", "--machine", machine_name, "mkdir", "-p", parent_dir], verbose=verbose)
 
     # Copy all files
     for src_path, rel_path in files:
         dest_path = f"{dest_dir}/{rel_path}"
-        run_command(["orb", "push", "--machine", machine_name, str(src_path), dest_path])
+        run_command(["orb", "push", "--machine", machine_name, str(src_path), dest_path], verbose=verbose)
 
 
-def copy_extra_config(machine_name: str, extra_config: str) -> str:
+def copy_extra_config(machine_name: str, extra_config: str, verbose: bool = False) -> str:
     """Copy extra config file to VM. Returns VM path."""
     # Try to resolve as absolute path first, then relative to current directory
     extra_config_path = Path(extra_config)
@@ -200,19 +201,19 @@ def copy_extra_config(machine_name: str, extra_config: str) -> str:
         extra_config_path = Path.cwd() / extra_config
 
     extra_config_path = extra_config_path.resolve()
-    tmp_base_dir = "/tmp/orbstack-nixos-provision"
 
     if not extra_config_path.exists():
         print(f"Error: User config file not found: {extra_config}", file=sys.stderr)
 
         # Try to suggest similar files if in orbstack-nix-config/extra directory
-        if extra_config.startswith("orbstack-nix-config/extra"):
+        extra_dir_path = f"{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
+        if extra_config.startswith(extra_dir_path):
             script_dir = Path(__file__).parent
-            nix_extra_config_dir = script_dir / "orbstack-nix-config" / "extra"
+            nix_extra_config_dir = script_dir / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
             if nix_extra_config_dir.exists():
                 similar_files = list(nix_extra_config_dir.rglob("*.nix"))
                 if similar_files:
-                    print("\nAvailable .nix files in orbstack-nix-config/extra/:", file=sys.stderr)
+                    print(f"\nAvailable .nix files in {extra_dir_path}/:", file=sys.stderr)
                     for f in similar_files:
                         rel_path = f.relative_to(script_dir)
                         print(f"  {rel_path}", file=sys.stderr)
@@ -221,11 +222,12 @@ def copy_extra_config(machine_name: str, extra_config: str) -> str:
     print(f"    Copying extra config to VM: {extra_config_path}")
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", tmp_base_dir])
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
 
-    extra_config_vm_path = f"{tmp_base_dir}/extra-config.nix"
+    extra_config_vm_path = f"{TMP_BASE_DIR}/{EXTRA_CONFIG_FILENAME}"
     run_command(
-        ["orb", "push", "--machine", machine_name, str(extra_config_path), extra_config_vm_path]
+        ["orb", "push", "--machine", machine_name, str(extra_config_path), extra_config_vm_path],
+        verbose=verbose
     )
 
     return extra_config_vm_path
@@ -236,7 +238,7 @@ def copy_extra_config(machine_name: str, extra_config: str) -> str:
 # ============================================================================
 
 
-def get_architecture(arch: str | None = None) -> tuple[str, str]:
+def get_architecture(arch: str | None = None, verbose: bool = False) -> tuple[str, str]:
     """
     Get architecture mapping for OrbStack and Nix.
 
@@ -248,7 +250,7 @@ def get_architecture(arch: str | None = None) -> tuple[str, str]:
     """
     # If no arch specified, detect from host
     if arch is None:
-        result = run_command(["uname", "-m"], capture_output=True)
+        result = run_command(["uname", "-m"], capture_output=True, verbose=verbose)
         machine = result.stdout.strip()
 
         # Normalize uname output
@@ -290,6 +292,7 @@ def run_nixos_rebuild(
     username: str,
     extra_config: str | None = None,
     is_initial_provision: bool = False,
+    verbose: bool = False,
 ) -> None:
     """Run nixos-rebuild switch by executing it on the VM directly."""
     if is_initial_provision:
@@ -298,19 +301,19 @@ def run_nixos_rebuild(
         print(f"==> Running nixos-rebuild switch for machine: {machine_name}")
 
     # Get flake path (copy local files)
-    flake_path = get_flake_path(machine_name)
+    flake_path = get_flake_path(machine_name, verbose=verbose)
 
-    # Copy orbstack-nix-config/extra directory (always, if it exists)
-    copy_nix_extra_config_dir(machine_name)
+    # Copy flake extra directory (always, if it exists)
+    copy_nix_extra_config_dir(machine_name, verbose=verbose)
 
     # Copy extra config if provided
     extra_config_vm_path = None
     if extra_config:
-        extra_config_vm_path = copy_extra_config(machine_name, extra_config)
+        extra_config_vm_path = copy_extra_config(machine_name, extra_config, verbose=verbose)
         print(f"    Using extra config on VM: {extra_config_vm_path}")
 
     # Copy bootstrap script
-    vm_script_path = copy_bootstrap_script(machine_name)
+    vm_bootstrap_script_path = copy_bootstrap_script(machine_name, verbose=verbose)
 
     # Build flake reference
     flake_ref = f"{flake_path}#{flake_attr}"
@@ -327,8 +330,9 @@ def run_nixos_rebuild(
     if not is_initial_provision:
         print(f"    Building and deploying: {flake_ref}")
     run_command(
-        ["orb", "--machine", machine_name, "bash", "-c", f"{env_vars}; {vm_script_path}"],
-        timeout=600  # 10 minutes
+        ["orb", "--machine", machine_name, "bash", "-c", f"{env_vars}; {vm_bootstrap_script_path}"],
+        timeout=600,
+        verbose=verbose
     )
 
     if not is_initial_provision:
@@ -363,6 +367,7 @@ def create_machine_only(
     machine_name: str,
     arch: str | None,
     recreate: bool = False,
+    verbose: bool = False,
 ) -> None:
     """Create an OrbStack NixOS machine without provisioning it.
 
@@ -370,24 +375,24 @@ def create_machine_only(
     avoiding the expensive provisioning step for each test.
     """
     # Check if machine already exists
-    if machine_exists(machine_name):
+    if machine_exists(machine_name, verbose=verbose):
         if recreate:
             print(f"==> Deleting existing machine: {machine_name}")
-            run_command(["orb", "delete", "-f", machine_name])
+            run_command(["orb", "delete", "-f", machine_name], verbose=verbose)
         else:
             print(f"Error: Machine '{machine_name}' already exists.", file=sys.stderr)
             print("Use --recreate to delete and recreate the machine.", file=sys.stderr)
             sys.exit(1)
 
     # Get architecture mapping
-    orb_arch, nix_system = get_architecture(arch)
+    orb_arch, nix_system = get_architecture(arch, verbose=verbose)
 
     # Step 1: Create OrbStack machine
     print(f"==> Creating OrbStack NixOS machine: {machine_name} (arch: {nix_system})")
-    run_command(["orb", "create", "nixos:25.11", machine_name, "--arch", orb_arch])
+    run_command(["orb", "create", "nixos:25.11", machine_name, "--arch", orb_arch], verbose=verbose)
 
-    # Step 2: Wait for machine to be ready
-    if not wait_for_machine_ready(machine_name):
+    # Step 2: Wait for the machine to be ready
+    if not wait_for_machine_ready(machine_name, verbose=verbose):
         print(f"Error: Machine did not become ready within 60 seconds.", file=sys.stderr)
         sys.exit(1)
 
@@ -400,14 +405,15 @@ def create_machine(
     arch: str | None,
     extra_config: str | None = None,
     recreate: bool = False,
+    verbose: bool = False,
 ) -> None:
     """Create and provision a new OrbStack NixOS machine."""
     # Step 1: Create OrbStack machine (without provisioning)
-    create_machine_only(machine_name, arch, recreate)
+    create_machine_only(machine_name, arch, recreate, verbose=verbose)
 
     # Step 2: Provision NixOS using the rebuild function
     run_nixos_rebuild(
-        machine_name, flake_attr, hostname, username, extra_config, is_initial_provision=True
+        machine_name, flake_attr, hostname, username, extra_config, is_initial_provision=True, verbose=verbose
     )
 
     # Done
@@ -420,18 +426,19 @@ def nixos_rebuild(
     hostname: str,
     username: str,
     extra_config: str | None = None,
+    verbose: bool = False,
 ) -> None:
     """Run nixos-rebuild switch on an existing machine."""
-    if not machine_exists(machine_name):
+    if not machine_exists(machine_name, verbose=verbose):
         print(f"Error: Machine '{machine_name}' does not exist.", file=sys.stderr)
-        print("Create it first with: orbstack-nixos-provision.py create", file=sys.stderr)
+        print(f"Create it first with: {SCRIPT_NAME} create", file=sys.stderr)
         sys.exit(1)
 
-    if not machine_is_running(machine_name):
+    if not machine_is_running(machine_name, verbose=verbose):
         print(f"Error: Machine '{machine_name}' is not running.", file=sys.stderr)
         sys.exit(1)
 
-    run_nixos_rebuild(machine_name, flake_attr, hostname, username, extra_config)
+    run_nixos_rebuild(machine_name, flake_attr, hostname, username, extra_config, verbose=verbose)
 
 
 # ============================================================================
@@ -504,11 +511,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     """Main entry point."""
-    global VERBOSE
     args = parse_args()
 
-    # Set verbose mode
-    VERBOSE = args.verbose
+    # Get verbose flag
+    verbose = args.verbose
 
     # Get username - default to current user
     username = args.username if (hasattr(args, "username") and args.username) else getpass.getuser()
@@ -531,6 +537,7 @@ def main() -> None:
             arch=args.arch,
             extra_config=extra_config,
             recreate=args.recreate,
+            verbose=verbose,
         )
     elif args.command == "nixos-rebuild":
         nixos_rebuild(
@@ -539,6 +546,7 @@ def main() -> None:
             hostname=hostname,
             username=username,
             extra_config=extra_config,
+            verbose=verbose,
         )
     else:
         print(f"Error: Unknown command '{args.command}'", file=sys.stderr)

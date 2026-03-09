@@ -1,6 +1,6 @@
 # OrbStack NixOS Machine Configuration
 
-This directory contains the NixOS configuration for OrbStack machines provisioned by the `orbstack-nixos-provision.py` tool.
+This directory contains the NixOS configuration for OrbStack machines provisioned by the `orbstack-machine-nixos-flakes.py` tool.
 
 ## Structure
 
@@ -44,7 +44,7 @@ Contains optional configuration modules that can be used with `--extra-config`:
 #### `extra/lib/docker.nix`
 Enables Docker support. Use with:
 ```bash
-./orbstack-nixos-provision.py create my-machine \
+./orbstack-machine-nixos-flakes.py create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
@@ -56,14 +56,14 @@ The provisioning script automatically copies this directory to the OrbStack mach
 
 ```bash
 # Create a machine (uses the flake in `orbstack-nix-config/flake.nix` automatically)
-./orbstack-nixos-provision.py create my-machine
+./orbstack-machine-nixos-flakes.py create my-machine
 ```
 
 ### With Extra Configuration
 
 ```bash
 # Add Docker configuration
-./orbstack-nixos-provision.py create my-machine \
+./orbstack-machine-nixos-flakes.py create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
@@ -93,7 +93,7 @@ sudo nixos-rebuild switch --flake /etc/nixos#default --impure
 
 From the host:
 ```bash
-./orbstack-nixos-provision.py nixos-rebuild my-machine
+./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
 ```
 
 ## Customization

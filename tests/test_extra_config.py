@@ -12,6 +12,9 @@ from tests.utils import (
     exec_on_machine,
     run_command,
     wait_for_network_online,
+    get_provision_script_path,
+    FLAKE_REPO_DIR,
+    FLAKE_EXTRA_DIR,
 )
 
 
@@ -65,7 +68,7 @@ def test_extra_config_on_rebuild(
 ):
     """Test applying --extra-config on nixos-rebuild."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
     extra_config = sample_configs_dir / "simple.nix"
 
     # First verify tmux is NOT installed
@@ -153,7 +156,7 @@ def test_extra_config_from_nix_extra_config_dir(
     machine_name = test_machine_created
 
     # Use the docker.nix from the project
-    docker_config = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
+    docker_config = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     docker_user_config = sample_configs_dir / "docker-user.nix"
 
     # We need to combine docker.nix with user config, so let's create a combined config

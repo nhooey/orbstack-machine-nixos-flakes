@@ -12,25 +12,31 @@ from tests.utils import (
     file_exists_on_machine,
     exec_on_machine,
     run_command,
+    get_provision_script_path,
+    PROVISION_SCRIPT_NAME,
+    BOOTSTRAP_SCRIPT_NAME,
+    FLAKE_REPO_DIR,
+    FLAKE_EXTRA_DIR,
+    TMP_BASE_DIR,
 )
 
 
 def _copy_project_files(project_root, test_project):
     """Copy essential project files to test project directory."""
     for file in [
-        "orbstack-nixos-provision.py",
-        "bootstrap-nixos.sh",
+        PROVISION_SCRIPT_NAME,
+        BOOTSTRAP_SCRIPT_NAME,
         "flake.nix",
         "flake.lock",
     ]:
         shutil.copy(project_root / file, test_project / file)
 
-    # Copy all required files from orbstack-nix-config subdirectory
-    (test_project / "orbstack-nix-config").mkdir(parents=True, exist_ok=True)
+    # Copy all required files from flake repo subdirectory
+    (test_project / FLAKE_REPO_DIR).mkdir(parents=True, exist_ok=True)
     for file in ["flake.nix", "flake.lock", "configuration.nix"]:
-        src_file = project_root / "orbstack-nix-config" / file
+        src_file = project_root / FLAKE_REPO_DIR / file
         if src_file.exists():
-            shutil.copy(src_file, test_project / "orbstack-nix-config" / file)
+            shutil.copy(src_file, test_project / FLAKE_REPO_DIR / file)
 
 
 @pytest.mark.slow
@@ -40,7 +46,7 @@ def test_nix_extra_config_dir_copied(test_machine_created):
     machine_name = test_machine_created
 
     # Check that orbstack-nix-config/extra directory was copied
-    base_path = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"
+    base_path = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
 
     # The directory should exist
     result = exec_on_machine(machine_name, ["test", "-d", base_path], check=False)
@@ -54,7 +60,7 @@ def test_nix_extra_config_files_present(test_machine_created):
     machine_name = test_machine_created
 
     # Check for known files from the orbstack-nix-config/extra directory
-    docker_nix = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra/lib/docker.nix"
+    docker_nix = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
 
     assert file_exists_on_machine(
         machine_name, docker_nix
@@ -68,7 +74,7 @@ def test_nix_extra_config_nested_structure(test_machine_created):
     machine_name = test_machine_created
 
     # Check that the lib/ subdirectory exists
-    lib_dir = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra/lib"
+    lib_dir = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib"
 
     result = exec_on_machine(machine_name, ["test", "-d", lib_dir], check=False)
     assert result.returncode == 0, "lib/ subdirectory should exist"
@@ -85,11 +91,11 @@ def test_nix_extra_config_file_content(test_machine_created, project_root):
     machine_name = test_machine_created
 
     # Read docker.nix from source
-    source_file = project_root / "orbstack-nix-config/extra" / "lib" / "docker.nix"
+    source_file = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     source_content = source_file.read_text()
 
     # Read docker.nix from VM
-    vm_path = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra/lib/docker.nix"
+    vm_path = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
     result = exec_on_machine(machine_name, ["cat", vm_path], check=True)
     vm_content = result.stdout
 
@@ -102,19 +108,19 @@ def test_nix_extra_config_file_content(test_machine_created, project_root):
 def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, test_username):
     """Test that orbstack-nix-config/extra is copied again on rebuild."""
     machine_name = test_machine_created
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # First, delete the orbstack-nix-config/extra directory on the VM
     exec_on_machine(
         machine_name,
-        ["rm", "-rf", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
+        ["rm", "-rf", f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"],
         check=True,
     )
 
     # Verify it's gone
     result = exec_on_machine(
         machine_name,
-        ["test", "-d", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
+        ["test", "-d", f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"],
         check=False,
     )
     assert result.returncode != 0, "Directory should be deleted"
@@ -125,7 +131,7 @@ def test_nix_extra_config_dir_on_rebuild(test_machine_created, project_root, tes
     # Now the directory should exist again
     result = exec_on_machine(
         machine_name,
-        ["test", "-d", "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"],
+        ["test", "-d", f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"],
         check=False,
     )
     assert result.returncode == 0, "Directory should be recreated on rebuild"
@@ -145,7 +151,7 @@ def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root,
     _copy_project_files(project_root, test_project)
 
     # Create a custom orbstack-nix-config/extra with nested structure
-    nix_extra_config = test_project / "orbstack-nix-config/extra"
+    nix_extra_config = test_project / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
     nix_extra_config.mkdir()
 
     (nix_extra_config / "README.md").write_text("# Test orbstack-nix-config/extra")
@@ -161,7 +167,7 @@ def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root,
 
     # Create machine from this test project
     machine_name = unique_machine_name
-    provision_script = test_project / "orbstack-nixos-provision.py"
+    provision_script = test_project / PROVISION_SCRIPT_NAME
 
     import os
 
@@ -171,7 +177,7 @@ def test_nix_extra_config_with_multiple_files(unique_machine_name, project_root,
         create_machine_direct(machine_name=machine_name, username=test_username)
 
         # Verify all files were copied
-        base = "/tmp/orbstack-nixos-provision/orbstack-nix-config/extra"
+        base = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
 
         assert file_exists_on_machine(machine_name, f"{base}/README.md")
         assert file_exists_on_machine(machine_name, f"{base}/lib/test1.nix")
@@ -199,7 +205,7 @@ def test_without_nix_extra_config_dir(unique_machine_name, project_root, test_us
     # Do NOT create orbstack-nix-config/extra directory
 
     machine_name = unique_machine_name
-    provision_script = test_project / "orbstack-nixos-provision.py"
+    provision_script = test_project / PROVISION_SCRIPT_NAME
 
     import os
 

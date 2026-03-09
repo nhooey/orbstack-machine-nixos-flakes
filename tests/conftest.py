@@ -88,28 +88,29 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
     for individual tests, avoiding the expensive provisioning step.
     The template is stopped after creation to enable cloning.
     """
+    import sys
     from tests.utils import stop_machine
 
     template_name = f"test-MASTER-{session_timestamp}"
 
-    print(f"\n{'='*80}")
-    print(f"Creating master template machine: {template_name}")
-    print(f"This will be cloned for all tests in this session")
-    print(f"{'='*80}\n")
+    print(f"\n{'='*80}", file=sys.stderr)
+    print(f"[TEST] Creating master template machine: {template_name}", file=sys.stderr)
+    print(f"[TEST] This will be cloned for all tests in this session", file=sys.stderr)
+    print(f"{'='*80}\n", file=sys.stderr)
 
     # Create and provision the template machine
     create_machine_direct(machine_name=template_name, username=test_username)
 
     # Stop the template machine so it can be cloned
-    print(f"\nStopping template machine {template_name} to enable cloning...")
+    print(f"\n[TEST] Stopping template machine {template_name} to enable cloning...", file=sys.stderr)
     if not stop_machine(template_name):
-        print(f"Warning: Failed to stop template machine {template_name}")
+        print(f"[TEST] WARNING: Failed to stop template machine {template_name}", file=sys.stderr)
 
     yield template_name
 
     # Cleanup: delete template machine after all tests
     if machine_exists(template_name):
-        print(f"\nCleaning up master template machine: {template_name}")
+        print(f"\n[TEST] Cleaning up master template machine: {template_name}", file=sys.stderr)
         delete_machine(template_name, force=True)
 
 
@@ -120,10 +121,11 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
 
     Clones from the master template machine for much faster test setup.
     """
+    import sys
     machine_name = unique_machine_name
 
     # Clone from template
-    print(f"\nCloning test machine {machine_name} from template {template_machine}")
+    print(f"\n[TEST] Cloning test machine {machine_name} from template {template_machine}", file=sys.stderr)
     success = clone_machine(template_machine, machine_name)
     if not success:
         raise RuntimeError(f"Failed to clone machine {machine_name} from {template_machine}")
@@ -132,7 +134,7 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
 
     # Cleanup: delete machine if it exists
     if machine_exists(machine_name):
-        print(f"\nCleaning up test machine: {machine_name}")
+        print(f"\n[TEST] Cleaning up test machine: {machine_name}", file=sys.stderr)
         delete_machine(machine_name, force=True)
 
 
@@ -146,18 +148,19 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     is applied with the correct hostname and username, since OrbStack cloning
     doesn't update these parameters.
     """
+    import sys
     from tests.utils import nixos_rebuild_direct, start_machine
 
     machine_name = test_machine
 
     # Ensure machine is running
-    print(f"\nStarting machine {machine_name}...")
+    print(f"\n[TEST] Starting machine {machine_name}...", file=sys.stderr)
     start_machine(machine_name)
 
     # Apply Nix configuration with correct hostname and username
     # This ensures cloned machines get their unique hostname set correctly
     # Note: nixos_rebuild_direct automatically sets hostname after rebuild
-    print(f"\nApplying Nix configuration to {machine_name}...")
+    print(f"\n[TEST] Applying Nix configuration to {machine_name}...", file=sys.stderr)
     nixos_rebuild_direct(machine_name=machine_name, hostname=machine_name, username=test_username)
 
     yield machine_name

@@ -1,5 +1,5 @@
 [project]
-name = "orbstack-nixos-provision"
+name = "orbstack-machine-nixos-flakes"
 version = "0.1.0"
 description = "OrbStack NixOS machine provisioning with Nix flakes"
 requires-python = ">=3.9"

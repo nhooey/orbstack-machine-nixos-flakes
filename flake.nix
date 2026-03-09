@@ -33,7 +33,7 @@
       {
         # Development shell for working on this project
         devShells.default = devshell.legacyPackages.${system}.mkShell {
-          name = "orbstack-nixos-provision";
+          name = "orbstack-machine-nixos-flakes";
 
           motd = ''
             {202}🚀 OrbStack NixOS Provisioning Development Environment{reset}
@@ -55,7 +55,7 @@
               category = "app";
               name = "provision";
               help = "Run the provisioning script";
-              command = ''./orbstack-nixos-provision.py "$@"'';
+              command = ''./orbstack-machine-nixos-flakes.py "$@"'';
             }
             {
               category = "code";

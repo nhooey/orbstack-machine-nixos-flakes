@@ -261,7 +261,7 @@ pip install -e ".[dev,test]"
 
 ### ModuleNotFoundError: No module named 'orbstack_nixos_provision'
 
-This is expected because `orbstack-nixos-provision.py` has a hyphen in the filename. Tests use `import_provision_script()` from `tests/utils.py` to handle this. If you're writing new tests that need to import from the main script, use:
+This is expected because `orbstack-machine-nixos-flakes.py` has a hyphen in the filename. Tests use `import_provision_script()` from `tests/utils.py` to handle this. If you're writing new tests that need to import from the main script, use:
 
 ```python
 from tests.utils import import_provision_script

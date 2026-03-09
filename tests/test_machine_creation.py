@@ -14,6 +14,7 @@ from tests.utils import (
     run_command,
     create_machine_direct,
     nixos_rebuild_direct,
+    get_provision_script_path,
 )
 
 
@@ -100,7 +101,7 @@ def test_create_machine_with_recreate(unique_machine_name, test_username):
 def test_machine_deletion(unique_machine_name, project_root, test_username):
     """Test machine deletion utility."""
     machine_name = unique_machine_name
-    provision_script = project_root / "orbstack-nixos-provision.py"
+    provision_script = get_provision_script_path()
 
     # Create a machine
     create_machine_direct(machine_name=machine_name, username=test_username)

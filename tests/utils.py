@@ -7,13 +7,23 @@ import sys
 import time
 from pathlib import Path
 
+# Constants
+PROVISION_SCRIPT_NAME = "orbstack-machine-nixos-flakes.py"
+BOOTSTRAP_SCRIPT_NAME = "bootstrap-nixos.sh"
+FLAKE_REPO_DIR = "orbstack-nix-config"
+FLAKE_EXTRA_DIR = "extra"
+TMP_BASE_DIR = "/tmp/orbstack-machine-nixos-flakes"
+
 
 def run_command(
     cmd: list[str], check: bool = True, capture_output: bool = True, timeout: int = 300
 ) -> subprocess.CompletedProcess:
     """Run a shell command with timeout."""
-    # Print command for debugging
-    print(f"\n[TEST] Running command: {' '.join(cmd)}", file=sys.stderr)
+    import shlex
+
+    # Print command for debugging - format as a proper shell command
+    cmd_str = ' '.join(shlex.quote(arg) for arg in cmd)
+    print(f"\n[TEST] Running command: {cmd_str}", file=sys.stderr)
     print(f"[TEST] Timeout: {timeout}s", file=sys.stderr)
 
     try:
@@ -24,7 +34,7 @@ def run_command(
         return result
     except subprocess.TimeoutExpired as e:
         print(f"\n[TEST ERROR] Command timed out after {timeout}s!", file=sys.stderr)
-        print(f"[TEST ERROR] Command: {' '.join(cmd)}", file=sys.stderr)
+        print(f"[TEST ERROR] Command: {cmd_str}", file=sys.stderr)
         if e.stdout:
             stdout_str = e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout
             print(f"[TEST ERROR] Partial stdout:\n{stdout_str}", file=sys.stderr)
@@ -335,9 +345,14 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 
+def get_provision_script_path() -> Path:
+    """Get the path to the provision script."""
+    return get_project_root() / PROVISION_SCRIPT_NAME
+
+
 def import_provision_script():
     """
-    Import the orbstack-nixos-provision.py script as a module.
+    Import the provision script as a module.
 
     Returns the module object which can be used to access functions like get_architecture.
     This is needed because the script has a hyphen in the filename.
@@ -345,9 +360,8 @@ def import_provision_script():
     import importlib.util
     import sys
 
-    project_root = get_project_root()
     spec = importlib.util.spec_from_file_location(
-        "orbstack_nixos_provision", project_root / "orbstack-nixos-provision.py"
+        "orbstack_nixos_provision", get_provision_script_path()
     )
     provision_module = importlib.util.module_from_spec(spec)
     sys.modules["orbstack_nixos_provision"] = provision_module
@@ -360,6 +374,7 @@ def create_machine_only_direct(
     machine_name: str,
     arch: str | None = None,
     recreate: bool = False,
+    verbose: bool = True,
 ) -> None:
     """
     Create a machine (without provisioning) by calling the provision script directly.
@@ -367,12 +382,15 @@ def create_machine_only_direct(
     This creates a base machine that can be provisioned later or cloned.
     Output is visible in real-time instead of being captured.
     """
+    print(f"[TEST] Creating machine (no provision): {machine_name}", file=sys.stderr)
     provision = import_provision_script()
     provision.create_machine_only(
         machine_name=machine_name,
         arch=arch,
         recreate=recreate,
+        verbose=verbose,
     )
+    print(f"[TEST] Machine created successfully: {machine_name}", file=sys.stderr)
 
 
 def create_machine_direct(
@@ -383,15 +401,24 @@ def create_machine_direct(
     extra_config: str | None = None,
     recreate: bool = False,
     flake_attr: str = "default",
+    verbose: bool = True,
 ) -> None:
     """
     Create a machine by calling the provision script functions directly.
 
     This allows test output to be visible in real-time instead of being captured.
     """
-    provision = import_provision_script()
     actual_hostname = hostname or machine_name
+    print(f"[TEST] Creating and provisioning machine: {machine_name}", file=sys.stderr)
+    print(f"[TEST]   hostname: {actual_hostname}", file=sys.stderr)
+    print(f"[TEST]   username: {username}", file=sys.stderr)
+    print(f"[TEST]   flake_attr: {flake_attr}", file=sys.stderr)
+    if extra_config:
+        print(f"[TEST]   extra_config: {extra_config}", file=sys.stderr)
+    if recreate:
+        print(f"[TEST]   recreate: True", file=sys.stderr)
 
+    provision = import_provision_script()
     provision.create_machine(
         machine_name=machine_name,
         flake_attr=flake_attr,
@@ -400,7 +427,9 @@ def create_machine_direct(
         arch=arch,
         extra_config=extra_config,
         recreate=recreate,
+        verbose=verbose,
     )
+    print(f"[TEST] Machine created and provisioned successfully: {machine_name}", file=sys.stderr)
 
 
 def nixos_rebuild_direct(
@@ -409,6 +438,7 @@ def nixos_rebuild_direct(
     hostname: str | None = None,
     extra_config: str | None = None,
     flake_attr: str = "default",
+    verbose: bool = True,
 ) -> subprocess.CompletedProcess:
     """
     Run nixos-rebuild by calling the provision script functions directly.
@@ -417,7 +447,14 @@ def nixos_rebuild_direct(
     Returns a CompletedProcess-like object for consistency with subprocess interface.
     """
     import io
-    import sys
+
+    actual_hostname = hostname or machine_name
+    print(f"[TEST] Running nixos-rebuild on machine: {machine_name}", file=sys.stderr)
+    print(f"[TEST]   hostname: {actual_hostname}", file=sys.stderr)
+    print(f"[TEST]   username: {username}", file=sys.stderr)
+    print(f"[TEST]   flake_attr: {flake_attr}", file=sys.stderr)
+    if extra_config:
+        print(f"[TEST]   extra_config: {extra_config}", file=sys.stderr)
 
     provision = import_provision_script()
 
@@ -428,8 +465,6 @@ def nixos_rebuild_direct(
     old_stderr = sys.stderr
     captured_stderr = io.StringIO()
 
-    actual_hostname = hostname or machine_name
-
     try:
         sys.stderr = captured_stderr
         provision.nixos_rebuild(
@@ -438,9 +473,11 @@ def nixos_rebuild_direct(
             hostname=actual_hostname,
             username=username,
             extra_config=extra_config,
+            verbose=verbose,
         )
 
         # If we get here, it succeeded
+        print(f"[TEST] nixos-rebuild completed successfully on {machine_name}", file=old_stderr)
         return subprocess.CompletedProcess(
             args=[],
             returncode=0,
@@ -449,6 +486,7 @@ def nixos_rebuild_direct(
         )
     except SystemExit as e:
         # nixos_rebuild calls sys.exit() on error
+        print(f"[TEST] nixos-rebuild failed on {machine_name} with exit code {e.code}", file=old_stderr)
         return subprocess.CompletedProcess(
             args=[],
             returncode=e.code if e.code is not None else 1,
