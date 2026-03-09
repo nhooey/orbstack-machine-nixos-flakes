@@ -50,6 +50,20 @@
             pkgs.bash
           ];
 
+          devshell.startup.symlinkNixTools = {
+            text = ''
+              # Create .nix-tools directory for PyCharm/IDE configuration
+              NIX_TOOLS_DIR="$PRJ_ROOT/.nix"
+              mkdir -p "$NIX_TOOLS_DIR"
+
+              # Symlink bin directory from Python environment
+              ln -sf "${pythonEnv}" "$NIX_TOOLS_DIR/python"
+
+              echo "Symlinked Nix tools to '$NIX_TOOLS_DIR'"
+              echo "Configure PyCharm Python interpreter to: $NIX_TOOLS_DIR/bin/python"
+            '';
+          };
+
           commands = [
             {
               category = "app";
