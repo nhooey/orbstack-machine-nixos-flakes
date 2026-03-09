@@ -157,7 +157,16 @@
               category = "testing";
               name = "tests-cleanup";
               help = "Clean up leftover test machines";
-              command = "orb list | grep -E '^test-.*-[0-9]{13}' | awk '{print $1}' | xargs -I {} orb delete -f {}";
+              command = ''
+                machines=$(orb list | grep -E '^test-nixos-[0-9]{13}-*' | awk '{print $1}')
+                if [ -n "$machines" ]; then
+                  echo "Deleting the following OrbStack Machines:"
+                  echo "$machines" | sed 's/^/  /'
+                  echo "$machines" | xargs -I {} orb delete -f {}
+                else
+                  echo "No test machines to clean up."
+                fi
+              '';
             }
           ];
         };
