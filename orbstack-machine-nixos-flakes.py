@@ -30,6 +30,7 @@ EXTRA_CONFIG_FILENAME = "extra-config.nix"
 # Script metadata
 SCRIPT_NAME = "orbstack-machine-nixos-flakes.py"
 
+DEFAULT_TIMEOUT = 1200
 
 # ============================================================================
 # Command Execution
@@ -40,7 +41,7 @@ def run_command(
     cmd: list[str],
     check: bool = True,
     capture_output: bool = False,
-    timeout: int | None = 600,
+    timeout: int | None = DEFAULT_TIMEOUT,
     verbose: bool = False,
 ) -> subprocess.CompletedProcess:
     """Run a shell command with an optional timeout."""
@@ -60,7 +61,7 @@ def run_command(
 
 
 def machine_exists(
-    machine_name: str, verbose: bool = False, timeout: int = 600
+    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> bool:
     """Check if the OrbStack machine already exists."""
     result = run_command(
@@ -73,7 +74,7 @@ def machine_exists(
 
 
 def machine_is_running(
-    machine_name: str, verbose: bool = False, timeout: int = 600
+    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> bool:
     """Check if the machine is running."""
     result = run_command(
@@ -88,7 +89,10 @@ def machine_is_running(
 
 
 def wait_for_machine_ready(
-    machine_name: str, max_wait: int = 60, verbose: bool = False, timeout: int = 600
+    machine_name: str,
+    max_wait: int = 60,
+    verbose: bool = False,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> bool:
     """Wait for the machine to be running and SSH-ready."""
     print("==> Waiting for machine to become SSH-ready...")
@@ -110,7 +114,10 @@ def wait_for_machine_ready(
 
 
 def copy_local_flake(
-    machine_name: str, flake_repo: str, verbose: bool = False, timeout: int = 600
+    machine_name: str,
+    flake_repo: str,
+    verbose: bool = False,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """Copy local flake files to the machine. Returns flake path on VM."""
     print("==> Copying local flake files to machine...")
@@ -162,7 +169,9 @@ def copy_local_flake(
     return flake_dest
 
 
-def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = 600) -> str:
+def get_flake_path(
+    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
+) -> str:
     """Get the flake path by copying local files to the machine.
 
     Args:
@@ -180,7 +189,7 @@ def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = 600)
 
 
 def copy_bootstrap_script(
-    machine_name: str, verbose: bool = False, timeout: int = 600
+    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> str:
     """Copy the bootstrap script to VM and make it executable. Returns VM script path."""
     # Get the bootstrap script path (relative to this script)
@@ -226,7 +235,7 @@ def copy_bootstrap_script(
 
 
 def copy_nix_extra_config_dir(
-    machine_name: str, verbose: bool = False, timeout: int = 600
+    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> None:
     """Recursively copy flake extra directory to VM if it exists."""
     nix_extra_config_dir = Path.cwd() / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
@@ -277,7 +286,10 @@ def copy_nix_extra_config_dir(
 
 
 def copy_extra_config(
-    machine_name: str, extra_config: str, verbose: bool = False, timeout: int = 600
+    machine_name: str,
+    extra_config: str,
+    verbose: bool = False,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """Copy the extra config file to the VM. Returns the VM path."""
     # Try to resolve as an absolute path first, then relative to the current directory
@@ -341,7 +353,7 @@ def copy_extra_config(
 
 
 def get_architecture(
-    arch: str | None = None, verbose: bool = False, timeout: int = 600
+    arch: str | None = None, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> tuple[str, str]:
     # If no arch specified, detect from host
     if arch is None:
@@ -390,7 +402,7 @@ def run_nixos_rebuild(
     extra_config: str | None = None,
     is_initial_provision: bool = False,
     verbose: bool = False,
-    timeout: int = 600,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
     """Run the nixos-rebuild switch by executing it on the VM directly."""
     if is_initial_provision:
@@ -477,7 +489,7 @@ def create_machine_only(
     arch: str | None,
     recreate: bool = False,
     verbose: bool = False,
-    timeout: int = 600,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
     """Create an OrbStack NixOS machine without provisioning it.
 
@@ -522,7 +534,7 @@ def create_machine(
     extra_config: str | None = None,
     recreate: bool = False,
     verbose: bool = False,
-    timeout: int = 600,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
     """Create and provision a new OrbStack NixOS machine."""
     # Step 1: Create OrbStack machine (without provisioning)
@@ -551,7 +563,7 @@ def nixos_rebuild(
     username: str,
     extra_config: str | None = None,
     verbose: bool = False,
-    timeout: int = 600,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
     """Run nixos-rebuild switch on an existing machine."""
     if not machine_exists(machine_name, verbose=verbose, timeout=timeout):
@@ -594,7 +606,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timeout",
         type=int,
-        default=600,
+        default=DEFAULT_TIMEOUT,
         help="Timeout in seconds for all operations (default: 600)",
     )
 
