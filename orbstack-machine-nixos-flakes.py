@@ -54,18 +54,18 @@ def run_command(
 # ============================================================================
 
 
-def machine_exists(machine_name: str, verbose: bool = False) -> bool:
+def machine_exists(machine_name: str, verbose: bool = False, timeout: int = 600) -> bool:
     """Check if the OrbStack machine already exists."""
-    result = run_command(["orb", "list"], capture_output=True, verbose=verbose)
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout)
     for line in result.stdout.splitlines():
         if line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} "):
             return True
     return False
 
 
-def machine_is_running(machine_name: str, verbose: bool = False) -> bool:
+def machine_is_running(machine_name: str, verbose: bool = False, timeout: int = 600) -> bool:
     """Check if the machine is running."""
-    result = run_command(["orb", "list"], capture_output=True, verbose=verbose)
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout)
     for line in result.stdout.splitlines():
         if (
             line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} ")
@@ -74,12 +74,12 @@ def machine_is_running(machine_name: str, verbose: bool = False) -> bool:
     return False
 
 
-def wait_for_machine_ready(machine_name: str, max_wait: int = 60, verbose: bool = False) -> bool:
+def wait_for_machine_ready(machine_name: str, max_wait: int = 60, verbose: bool = False, timeout: int = 600) -> bool:
     """Wait for machine to be running and SSH-ready."""
     print("==> Waiting for machine to become SSH-ready...")
     elapsed = 0
     while elapsed < max_wait:
-        if machine_is_running(machine_name, verbose=verbose):
+        if machine_is_running(machine_name, verbose=verbose, timeout=timeout):
             # Give SSH daemon a moment to fully initialize
             time.sleep(2)
             print("    Machine is ready.")
@@ -94,7 +94,7 @@ def wait_for_machine_ready(machine_name: str, max_wait: int = 60, verbose: bool 
 # ============================================================================
 
 
-def copy_local_flake(machine_name: str, flake_repo: str, verbose: bool = False) -> str:
+def copy_local_flake(machine_name: str, flake_repo: str, verbose: bool = False, timeout: int = 600) -> str:
     """Copy local flake files to the machine. Returns flake path on VM."""
     print("==> Copying local flake files to machine...")
 
@@ -115,27 +115,27 @@ def copy_local_flake(machine_name: str, flake_repo: str, verbose: bool = False) 
         sys.exit(1)
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose, timeout=timeout)
 
     # Create /etc/nixos directory if it doesn't exist
-    run_command(["orb", "--machine", machine_name, "sudo", "mkdir", "-p", flake_dest], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "sudo", "mkdir", "-p", flake_dest], verbose=verbose, timeout=timeout)
 
     for file_path, file_name in files_to_copy:
         tmp_path = f"{TMP_BASE_DIR}/{file_name}"
         dest_path = f"{flake_dest}/{file_name}"
-        run_command(["orb", "push", "--machine", machine_name, str(file_path), tmp_path], verbose=verbose)
-        run_command(["orb", "--machine", machine_name, "sudo", "mv", tmp_path, dest_path], verbose=verbose)
+        run_command(["orb", "push", "--machine", machine_name, str(file_path), tmp_path], verbose=verbose, timeout=timeout)
+        run_command(["orb", "--machine", machine_name, "sudo", "mv", tmp_path, dest_path], verbose=verbose, timeout=timeout)
 
     return flake_dest
 
 
-def get_flake_path(machine_name: str, verbose: bool = False) -> str:
+def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = 600) -> str:
     """Get the flake path by copying local files to the machine."""
     # Use flake repository directory
-    return copy_local_flake(machine_name, FLAKE_REPO_DIR, verbose=verbose)
+    return copy_local_flake(machine_name, FLAKE_REPO_DIR, verbose=verbose, timeout=timeout)
 
 
-def copy_bootstrap_script(machine_name: str, verbose: bool = False) -> str:
+def copy_bootstrap_script(machine_name: str, verbose: bool = False, timeout: int = 600) -> str:
     """Copy bootstrap script to VM and make it executable. Returns VM script path."""
     # Get the bootstrap script path (relative to this script)
     script_dir = Path(__file__).parent
@@ -146,19 +146,19 @@ def copy_bootstrap_script(machine_name: str, verbose: bool = False) -> str:
         sys.exit(1)
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose, timeout=timeout)
 
     # Copy bootstrap script to VM
     vm_script_path = f"{TMP_BASE_DIR}/{BOOTSTRAP_SCRIPT_NAME}"
-    run_command(["orb", "push", "--machine", machine_name, str(bootstrap_script), vm_script_path], verbose=verbose)
+    run_command(["orb", "push", "--machine", machine_name, str(bootstrap_script), vm_script_path], verbose=verbose, timeout=timeout)
 
     # Make it executable
-    run_command(["orb", "--machine", machine_name, "chmod", "+x", vm_script_path], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "chmod", "+x", vm_script_path], verbose=verbose, timeout=timeout)
 
     return vm_script_path
 
 
-def copy_nix_extra_config_dir(machine_name: str, verbose: bool = False) -> None:
+def copy_nix_extra_config_dir(machine_name: str, verbose: bool = False, timeout: int = 600) -> None:
     """Recursively copy flake extra directory to VM if it exists."""
     nix_extra_config_dir = Path.cwd() / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR
 
@@ -169,7 +169,7 @@ def copy_nix_extra_config_dir(machine_name: str, verbose: bool = False) -> None:
 
     # Create the destination directory on VM
     dest_dir = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}"
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", dest_dir], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", dest_dir], verbose=verbose, timeout=timeout)
 
     # Get all files with their relative paths and destination paths
     files = [
@@ -185,15 +185,15 @@ def copy_nix_extra_config_dir(machine_name: str, verbose: bool = False) -> None:
 
     # Create all parent directories
     for parent_dir in parent_dirs:
-        run_command(["orb", "--machine", machine_name, "mkdir", "-p", parent_dir], verbose=verbose)
+        run_command(["orb", "--machine", machine_name, "mkdir", "-p", parent_dir], verbose=verbose, timeout=timeout)
 
     # Copy all files
     for src_path, rel_path in files:
         dest_path = f"{dest_dir}/{rel_path}"
-        run_command(["orb", "push", "--machine", machine_name, str(src_path), dest_path], verbose=verbose)
+        run_command(["orb", "push", "--machine", machine_name, str(src_path), dest_path], verbose=verbose, timeout=timeout)
 
 
-def copy_extra_config(machine_name: str, extra_config: str, verbose: bool = False) -> str:
+def copy_extra_config(machine_name: str, extra_config: str, verbose: bool = False, timeout: int = 600) -> str:
     """Copy extra config file to VM. Returns VM path."""
     # Try to resolve as absolute path first, then relative to current directory
     extra_config_path = Path(extra_config)
@@ -222,12 +222,13 @@ def copy_extra_config(machine_name: str, extra_config: str, verbose: bool = Fals
     print(f"    Copying extra config to VM: {extra_config_path}")
 
     # Create temporary directory
-    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose)
+    run_command(["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR], verbose=verbose, timeout=timeout)
 
     extra_config_vm_path = f"{TMP_BASE_DIR}/{EXTRA_CONFIG_FILENAME}"
     run_command(
         ["orb", "push", "--machine", machine_name, str(extra_config_path), extra_config_vm_path],
-        verbose=verbose
+        verbose=verbose,
+        timeout=timeout
     )
 
     return extra_config_vm_path
@@ -238,7 +239,7 @@ def copy_extra_config(machine_name: str, extra_config: str, verbose: bool = Fals
 # ============================================================================
 
 
-def get_architecture(arch: str | None = None, verbose: bool = False) -> tuple[str, str]:
+def get_architecture(arch: str | None = None, verbose: bool = False, timeout: int = 600) -> tuple[str, str]:
     """
     Get architecture mapping for OrbStack and Nix.
 
@@ -250,7 +251,7 @@ def get_architecture(arch: str | None = None, verbose: bool = False) -> tuple[st
     """
     # If no arch specified, detect from host
     if arch is None:
-        result = run_command(["uname", "-m"], capture_output=True, verbose=verbose)
+        result = run_command(["uname", "-m"], capture_output=True, verbose=verbose, timeout=timeout)
         machine = result.stdout.strip()
 
         # Normalize uname output
@@ -293,6 +294,7 @@ def run_nixos_rebuild(
     extra_config: str | None = None,
     is_initial_provision: bool = False,
     verbose: bool = False,
+    timeout: int = 600,
 ) -> None:
     """Run nixos-rebuild switch by executing it on the VM directly."""
     if is_initial_provision:
@@ -301,19 +303,19 @@ def run_nixos_rebuild(
         print(f"==> Running nixos-rebuild switch for machine: {machine_name}")
 
     # Get flake path (copy local files)
-    flake_path = get_flake_path(machine_name, verbose=verbose)
+    flake_path = get_flake_path(machine_name, verbose=verbose, timeout=timeout)
 
     # Copy flake extra directory (always, if it exists)
-    copy_nix_extra_config_dir(machine_name, verbose=verbose)
+    copy_nix_extra_config_dir(machine_name, verbose=verbose, timeout=timeout)
 
     # Copy extra config if provided
     extra_config_vm_path = None
     if extra_config:
-        extra_config_vm_path = copy_extra_config(machine_name, extra_config, verbose=verbose)
+        extra_config_vm_path = copy_extra_config(machine_name, extra_config, verbose=verbose, timeout=timeout)
         print(f"    Using extra config on VM: {extra_config_vm_path}")
 
     # Copy bootstrap script
-    vm_bootstrap_script_path = copy_bootstrap_script(machine_name, verbose=verbose)
+    vm_bootstrap_script_path = copy_bootstrap_script(machine_name, verbose=verbose, timeout=timeout)
 
     # Build flake reference
     flake_ref = f"{flake_path}#{flake_attr}"
@@ -325,13 +327,13 @@ def run_nixos_rebuild(
         env_vars += f"; export NIXOS_EXTRA_CONFIG='{extra_config_vm_path}'"
 
     # Run the bootstrap script with environment variables
-    # Use a long timeout (10 minutes) since nixos-rebuild can take a while,
+    # Use a long timeout since nixos-rebuild can take a while,
     # especially on first run when it needs to download packages
     if not is_initial_provision:
         print(f"    Building and deploying: {flake_ref}")
     run_command(
         ["orb", "--machine", machine_name, "bash", "-c", f"{env_vars}; {vm_bootstrap_script_path}"],
-        timeout=600,
+        timeout=timeout,
         verbose=verbose
     )
 
@@ -368,6 +370,7 @@ def create_machine_only(
     arch: str | None,
     recreate: bool = False,
     verbose: bool = False,
+    timeout: int = 600,
 ) -> None:
     """Create an OrbStack NixOS machine without provisioning it.
 
@@ -375,24 +378,24 @@ def create_machine_only(
     avoiding the expensive provisioning step for each test.
     """
     # Check if machine already exists
-    if machine_exists(machine_name, verbose=verbose):
+    if machine_exists(machine_name, verbose=verbose, timeout=timeout):
         if recreate:
             print(f"==> Deleting existing machine: {machine_name}")
-            run_command(["orb", "delete", "-f", machine_name], verbose=verbose)
+            run_command(["orb", "delete", "-f", machine_name], verbose=verbose, timeout=timeout)
         else:
             print(f"Error: Machine '{machine_name}' already exists.", file=sys.stderr)
             print("Use --recreate to delete and recreate the machine.", file=sys.stderr)
             sys.exit(1)
 
     # Get architecture mapping
-    orb_arch, nix_system = get_architecture(arch, verbose=verbose)
+    orb_arch, nix_system = get_architecture(arch, verbose=verbose, timeout=timeout)
 
     # Step 1: Create OrbStack machine
     print(f"==> Creating OrbStack NixOS machine: {machine_name} (arch: {nix_system})")
-    run_command(["orb", "create", "nixos:25.11", machine_name, "--arch", orb_arch], verbose=verbose)
+    run_command(["orb", "create", "nixos:25.11", machine_name, "--arch", orb_arch], verbose=verbose, timeout=timeout)
 
     # Step 2: Wait for the machine to be ready
-    if not wait_for_machine_ready(machine_name, verbose=verbose):
+    if not wait_for_machine_ready(machine_name, verbose=verbose, timeout=timeout):
         print(f"Error: Machine did not become ready within 60 seconds.", file=sys.stderr)
         sys.exit(1)
 
@@ -406,14 +409,15 @@ def create_machine(
     extra_config: str | None = None,
     recreate: bool = False,
     verbose: bool = False,
+    timeout: int = 600,
 ) -> None:
     """Create and provision a new OrbStack NixOS machine."""
     # Step 1: Create OrbStack machine (without provisioning)
-    create_machine_only(machine_name, arch, recreate, verbose=verbose)
+    create_machine_only(machine_name, arch, recreate, verbose=verbose, timeout=timeout)
 
     # Step 2: Provision NixOS using the rebuild function
     run_nixos_rebuild(
-        machine_name, flake_attr, hostname, username, extra_config, is_initial_provision=True, verbose=verbose
+        machine_name, flake_attr, hostname, username, extra_config, is_initial_provision=True, verbose=verbose, timeout=timeout
     )
 
     # Done
@@ -427,18 +431,19 @@ def nixos_rebuild(
     username: str,
     extra_config: str | None = None,
     verbose: bool = False,
+    timeout: int = 600,
 ) -> None:
     """Run nixos-rebuild switch on an existing machine."""
-    if not machine_exists(machine_name, verbose=verbose):
+    if not machine_exists(machine_name, verbose=verbose, timeout=timeout):
         print(f"Error: Machine '{machine_name}' does not exist.", file=sys.stderr)
         print(f"Create it first with: {SCRIPT_NAME} create", file=sys.stderr)
         sys.exit(1)
 
-    if not machine_is_running(machine_name, verbose=verbose):
+    if not machine_is_running(machine_name, verbose=verbose, timeout=timeout):
         print(f"Error: Machine '{machine_name}' is not running.", file=sys.stderr)
         sys.exit(1)
 
-    run_nixos_rebuild(machine_name, flake_attr, hostname, username, extra_config, verbose=verbose)
+    run_nixos_rebuild(machine_name, flake_attr, hostname, username, extra_config, verbose=verbose, timeout=timeout)
 
 
 # ============================================================================
@@ -457,6 +462,12 @@ def parse_args() -> argparse.Namespace:
         "--verbose",
         action="store_true",
         help="Print verbose output including all shell invocations",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=600,
+        help="Timeout in seconds for all operations (default: 600)",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True, help="Command to execute")
@@ -516,6 +527,9 @@ def main() -> None:
     # Get verbose flag
     verbose = args.verbose
 
+    # Get timeout
+    timeout = args.timeout
+
     # Get username - default to current user
     username = args.username if (hasattr(args, "username") and args.username) else getpass.getuser()
 
@@ -538,6 +552,7 @@ def main() -> None:
             extra_config=extra_config,
             recreate=args.recreate,
             verbose=verbose,
+            timeout=timeout,
         )
     elif args.command == "nixos-rebuild":
         nixos_rebuild(
@@ -547,6 +562,7 @@ def main() -> None:
             username=username,
             extra_config=extra_config,
             verbose=verbose,
+            timeout=timeout,
         )
     else:
         print(f"Error: Unknown command '{args.command}'", file=sys.stderr)
