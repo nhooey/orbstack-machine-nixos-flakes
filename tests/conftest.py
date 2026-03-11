@@ -100,7 +100,7 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
 
     from tests.utils import stop_machine
 
-    template_name = f"test-MASTER-{session_timestamp}"
+    template_name = f"test-nixos-MASTER-{session_timestamp}"
 
     print(f"\n{'=' * 80}", file=sys.stderr)
     print(
@@ -161,7 +161,10 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
     finally:
         # Cleanup: delete the machine if it exists
         if machine_exists(machine_name):
-            print(f"\n[TEST] Cleaning up the test machine: {machine_name}", file=sys.stderr)
+            print(
+                f"\n[TEST] Cleaning up the test machine: {machine_name}",
+                file=sys.stderr,
+            )
             delete_machine(machine_name, force=True)
 
 
