@@ -282,7 +282,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
             machine_name,
             ["systemctl", "is-active", "network-online.target"],
             check=False,
-            timeout=10,
+            timeout=30,
         )
         if result.returncode == 0:
             print("[TEST] network-online.target is active", file=sys.stderr)

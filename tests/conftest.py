@@ -145,23 +145,24 @@ def test_machine(unique_machine_name, template_machine) -> Generator[str, None, 
 
     machine_name = unique_machine_name
 
-    # Clone from the template
-    print(
-        f"\n[TEST] Cloning the test machine {machine_name} from template {template_machine}",
-        file=sys.stderr,
-    )
-    success = clone_machine(template_machine, machine_name)
-    if not success:
-        raise RuntimeError(
-            f"Failed to clone the machine {machine_name} from {template_machine}"
+    try:
+        # Clone from the template
+        print(
+            f"\n[TEST] Cloning the test machine {machine_name} from template {template_machine}",
+            file=sys.stderr,
         )
+        success = clone_machine(template_machine, machine_name)
+        if not success:
+            raise RuntimeError(
+                f"Failed to clone the machine {machine_name} from {template_machine}"
+            )
 
-    yield machine_name
-
-    # Cleanup: delete the machine if it exists
-    if machine_exists(machine_name):
-        print(f"\n[TEST] Cleaning up the test machine: {machine_name}", file=sys.stderr)
-        delete_machine(machine_name, force=True)
+        yield machine_name
+    finally:
+        # Cleanup: delete the machine if it exists
+        if machine_exists(machine_name):
+            print(f"\n[TEST] Cleaning up the test machine: {machine_name}", file=sys.stderr)
+            delete_machine(machine_name, force=True)
 
 
 @pytest.fixture
