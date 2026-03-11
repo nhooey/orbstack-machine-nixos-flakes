@@ -1,20 +1,17 @@
-# OrbStack NixOS Provision
+# OrbStack Machine NixOS Flakes provisioning
 
-One-command provisioning of NixOS machines in OrbStack from a Git repository.
+One-command provisioning and maintenance of OrbStack Machines with NixOS and Flakes enabled, from a Git repository.
+
+This supplements the missing functionality of OrbStack's machine provisioning, where OrbStack can only provision a
+Machine with NixOS but without Flakes enabled and without the ability to add extra configuration.
 
 ## Usage
 
 ### Initial Provisioning
 
-1. Clone this repository:
+1. Clone this repository and cd in to the directory.
+2. Run the provisioning script (building only necessary for running tests):
    ```bash
-   git clone https://github.com/nhooey/orbstack-machine-nixos-flakes.git
-   cd orbstack-machine-nixos-flakes
-   ```
-
-2. Run the provisioning script:
-   ```bash
-   chmod +x orbstack-machine-nixos-flakes.py
    ./orbstack-machine-nixos-flakes.py create my-machine
    ```
 
@@ -23,11 +20,17 @@ One-command provisioning of NixOS machines in OrbStack from a Git repository.
    orb --machine my-machine
    ```
 
-### Adding Custom Configuration
+### Adding Extra Configuration
 
-To add your own packages, services, or configuration:
+To supplement the default Nix configuration in `orbstack-nix-config/flake.nix`, you can specify a single Nix
+configuration with the `--extra-config` command-line option added to either the `create` or `nixos-rebuild` commands of
+the `orbstack-machine-nixos-flakes.py` script.
 
-1. Create a file named `user-extra.nix` in the repository root:
+This Nix configuration file can live in this repository in the `orbstack-nix-config/extra` directory, and will be
+ignored by Git (for convenience, so non-maintainers of this repository can store their Nix configs). But it can also
+live anywhere else, even in its own separate repository.
+
+1. Create a file named `extra.nix` in the `orbstack-nix-config/extra` directory (ignored by Git):
    ```nix
    { config, pkgs, ... }:
 
@@ -47,11 +50,13 @@ To add your own packages, services, or configuration:
    }
    ```
 
-2. The `user-extra.nix` file will be automatically imported during provisioning and all future rebuilds.
-
-3. After creating or modifying `user-extra.nix`, rebuild the system:
+2. Create or modify an OrbStack Machine with NixOS Flakes enabled, with user-specified extra Nix configuration:
    ```bash
-   ./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
+   # Creating a new machine:j
+   ./orbstack-machine-nixos-flakes.py create        'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
+   
+   # Updating an existing machine:
+   ./orbstack-machine-nixos-flakes.py nixos-rebuild 'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
    ```
 
 ### Future Updates
@@ -80,17 +85,6 @@ The project includes a Nix flake with a complete development environment:
 ```bash
 # Enter the development shell
 nix develop
-
-# Available commands (run 'menu' to see all):
-provision            # Run the provisioning script
-tests                # Run all tests
-tests-fast           # Run only fast tests (skip slow machine creation)
-tests-verbose        # Run tests with verbose output
-tests-parallel       # Run tests in parallel
-tests-coverage       # Run tests with coverage report
-tests-cleanup        # Clean up leftover test machines
-format               # Format Python code with black
-typecheck            # Run mypy type checker
 ```
 
 All Python dependencies (pytest, black, mypy, etc.) are automatically available in the Nix shell.
@@ -131,6 +125,7 @@ pytest --cov=provision_orbstack --cov-report=html
 ### Dependencies
 
 All Python dependencies are managed in `pyproject.toml`:
+
 - **Development tools**: black, mypy
 - **Testing tools**: pytest, pytest-timeout, pytest-xdist, pytest-cov, pytest-sugar
 
