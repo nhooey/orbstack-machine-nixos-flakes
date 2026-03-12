@@ -15,19 +15,14 @@
           modules = [
             ./configuration.nix
 
-            # Optionally import user-extra.nix if it exists in the parent directory
-            # This allows users to add custom packages/services without modifying core files
-            ({ lib, ... }: {
-              imports = lib.optional (builtins.pathExists ../user-extra.nix) ../user-extra.nix;
-            })
-
             # Support for user-specified config file via NIXOS_EXTRA_CONFIG environment variable
             # This allows users to supplement the configuration without forking or modifying files
             # Usage: NIXOS_EXTRA_CONFIG=/path/to/config.nix nixos-rebuild switch --flake .#config --impure
             ({ lib, ... }:
               let
                 userConfigPath = builtins.getEnv "NIXOS_EXTRA_CONFIG";
-              in {
+              in
+              {
                 imports = lib.optional (userConfigPath != "" && builtins.pathExists userConfigPath) userConfigPath;
               })
           ];

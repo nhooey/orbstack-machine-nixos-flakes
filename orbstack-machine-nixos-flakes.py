@@ -291,7 +291,14 @@ def copy_extra_config(
     verbose: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
-    """Copy the extra config file to the VM. Returns the VM path."""
+    """Copy the extra config file to the VM. Returns the VM path.
+
+    If the extra config is within orbstack-nix-config/extra/, this function will
+    copy the entire orbstack-nixos-config directory to /etc/nixos on the machine
+    to ensure that all references work properly.
+
+    If the extra config is outside that directory, it will copy just the single file.
+    """
     # Try to resolve as an absolute path first, then relative to the current directory
     extra_config_path = Path(extra_config)
     if not extra_config_path.is_absolute():
@@ -323,6 +330,18 @@ def copy_extra_config(
 
     print(f"    Copying extra config to VM: {extra_config_path}")
 
+    # Check if the extra config is within orbstack-nix-config/extra/
+    script_dir = Path(__file__).parent
+    orbstack_nix_config_dir = script_dir / FLAKE_REPO_DIR
+
+    try:
+        # Check if the extra config is within orbstack-nix-config/extra/
+        rel_to_orbstack = extra_config_path.relative_to(orbstack_nix_config_dir / FLAKE_EXTRA_DIR)
+        is_in_extra_dir = True
+    except ValueError:
+        # Not within orbstack-nix-config/extra/
+        is_in_extra_dir = False
+
     # Create a temporary directory
     run_command(
         ["orb", "--machine", machine_name, "mkdir", "-p", TMP_BASE_DIR],
@@ -330,19 +349,81 @@ def copy_extra_config(
         timeout=timeout,
     )
 
-    extra_config_vm_path = f"{TMP_BASE_DIR}/{EXTRA_CONFIG_FILENAME}"
-    run_command(
-        [
-            "orb",
-            "push",
-            "--machine",
-            machine_name,
-            str(extra_config_path),
-            extra_config_vm_path,
-        ],
-        verbose=verbose,
-        timeout=timeout,
-    )
+    if is_in_extra_dir:
+        # Copy the entire orbstack-nix-config directory to /etc/nixos
+        print(f"    Copying entire {FLAKE_REPO_DIR} directory to /etc/nixos...")
+
+        # Create destination directory
+        dest_base = f"{FLAKE_DEST_DIR}/{FLAKE_REPO_DIR}"
+        run_command(
+            ["orb", "--machine", machine_name, "sudo", "mkdir", "-p", dest_base],
+            verbose=verbose,
+            timeout=timeout,
+        )
+
+        # Get all files in orbstack-nix-config directory
+        files = [
+            (item, item.relative_to(orbstack_nix_config_dir))
+            for item in orbstack_nix_config_dir.rglob("*")
+            if item.is_file()
+        ]
+
+        # Get unique parent directories
+        parent_dirs = {
+            f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{rel_path.parent}"
+            for _, rel_path in files
+            if rel_path.parent != Path(".")
+        }
+
+        # Create all parent directories in temp location
+        for parent_dir in parent_dirs:
+            run_command(
+                ["orb", "--machine", machine_name, "mkdir", "-p", parent_dir],
+                verbose=verbose,
+                timeout=timeout,
+            )
+
+        # Copy all files to temp location
+        for src_path, rel_path in files:
+            tmp_dest_path = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{rel_path}"
+            run_command(
+                ["orb", "push", "--machine", machine_name, str(src_path), tmp_dest_path],
+                verbose=verbose,
+                timeout=timeout,
+            )
+
+        # Move from temp to /etc/nixos with sudo
+        run_command(
+            [
+                "orb",
+                "--machine",
+                machine_name,
+                "sudo",
+                "mv",
+                f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}",
+                FLAKE_DEST_DIR,
+            ],
+            verbose=verbose,
+            timeout=timeout,
+        )
+
+        # Return the path to the extra config on the VM
+        extra_config_vm_path = f"{FLAKE_DEST_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/{rel_to_orbstack}"
+    else:
+        # Just copy the single file
+        extra_config_vm_path = f"{TMP_BASE_DIR}/{EXTRA_CONFIG_FILENAME}"
+        run_command(
+            [
+                "orb",
+                "push",
+                "--machine",
+                machine_name,
+                str(extra_config_path),
+                extra_config_vm_path,
+            ],
+            verbose=verbose,
+            timeout=timeout,
+        )
 
     return extra_config_vm_path
 

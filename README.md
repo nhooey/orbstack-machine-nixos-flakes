@@ -30,34 +30,17 @@ This Nix configuration file can live in this repository in the `orbstack-nix-con
 ignored by Git (for convenience, so non-maintainers of this repository can store their Nix configs). But it can also
 live anywhere else, even in its own separate repository.
 
-1. Create a file named `extra.nix` in the `orbstack-nix-config/extra` directory (ignored by Git):
-   ```nix
-   { config, pkgs, ... }:
+See example configurations in `orbstack-nix-config/extra/examples/`.
 
-   {
-     environment.systemPackages = with pkgs; [
-       neovim
-       tmux
-       # Add more packages here
-     ];
+Create or modify an OrbStack Machine with NixOS Flakes enabled, with user-specified extra Nix configuration:
 
-     services.postgresql = {
-       enable = true;
-       # Add service configuration here
-     };
+```bash
+# Creating a new machine:
+./orbstack-machine-nixos-flakes.py create        'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
 
-     # Any other NixOS options
-   }
-   ```
-
-2. Create or modify an OrbStack Machine with NixOS Flakes enabled, with user-specified extra Nix configuration:
-   ```bash
-   # Creating a new machine:j
-   ./orbstack-machine-nixos-flakes.py create        'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
-   
-   # Updating an existing machine:
-   ./orbstack-machine-nixos-flakes.py nixos-rebuild 'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
-   ```
+# Updating an existing machine:
+./orbstack-machine-nixos-flakes.py nixos-rebuild 'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
+```
 
 ### Future Updates
 
