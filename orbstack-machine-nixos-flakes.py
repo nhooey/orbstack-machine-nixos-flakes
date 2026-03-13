@@ -336,7 +336,9 @@ def copy_extra_config(
 
     try:
         # Check if the extra config is within orbstack-nix-config/extra/
-        rel_to_orbstack = extra_config_path.relative_to(orbstack_nix_config_dir / FLAKE_EXTRA_DIR)
+        rel_to_orbstack = extra_config_path.relative_to(
+            orbstack_nix_config_dir / FLAKE_EXTRA_DIR
+        )
         is_in_extra_dir = True
     except ValueError:
         # Not within orbstack-nix-config/extra/
@@ -353,15 +355,22 @@ def copy_extra_config(
         # Copy the entire orbstack-nix-config directory to /etc/nixos
         print(f"    Copying entire {FLAKE_REPO_DIR} directory to /etc/nixos...")
 
-        # Create destination directory
+        # Delete the existing directory first to ensure a clean state
         dest_base = f"{FLAKE_DEST_DIR}/{FLAKE_REPO_DIR}"
+        run_command(
+            ["orb", "--machine", machine_name, "sudo", "rm", "-rf", dest_base],
+            verbose=verbose,
+            timeout=timeout,
+        )
+
+        # Create the destination directory
         run_command(
             ["orb", "--machine", machine_name, "sudo", "mkdir", "-p", dest_base],
             verbose=verbose,
             timeout=timeout,
         )
 
-        # Get all files in orbstack-nix-config directory
+        # Get all files in the orbstack-nix-config directory
         files = [
             (item, item.relative_to(orbstack_nix_config_dir))
             for item in orbstack_nix_config_dir.rglob("*")
@@ -383,11 +392,18 @@ def copy_extra_config(
                 timeout=timeout,
             )
 
-        # Copy all files to temp location
+        # Copy all files to a temp location
         for src_path, rel_path in files:
             tmp_dest_path = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{rel_path}"
             run_command(
-                ["orb", "push", "--machine", machine_name, str(src_path), tmp_dest_path],
+                [
+                    "orb",
+                    "push",
+                    "--machine",
+                    machine_name,
+                    str(src_path),
+                    tmp_dest_path,
+                ],
                 verbose=verbose,
                 timeout=timeout,
             )
@@ -408,7 +424,9 @@ def copy_extra_config(
         )
 
         # Return the path to the extra config on the VM
-        extra_config_vm_path = f"{FLAKE_DEST_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/{rel_to_orbstack}"
+        extra_config_vm_path = (
+            f"{FLAKE_DEST_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/{rel_to_orbstack}"
+        )
     else:
         # Just copy the single file
         extra_config_vm_path = f"{TMP_BASE_DIR}/{EXTRA_CONFIG_FILENAME}"
