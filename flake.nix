@@ -15,9 +15,15 @@
     pyproject-build-systems.inputs.pyproject-nix.follows = "pyproject-nix";
     pyproject-build-systems.inputs.uv2nix.follows = "uv2nix";
     pyproject-build-systems.inputs.nixpkgs.follows = "nixpkgs";
+    # The builder lib for the dev shell's skills, not a skill: its
+    # `devshellSkillsHook` runs the `skills-devshell/` sub-flake on
+    # `nix develop`, so this flake carries no skill inputs.
+    agent-skill-flake.url = "github:nhooey/agent-skill-flake";
+    agent-skill-flake.inputs.nixpkgs.follows = "nixpkgs";
+    agent-skill-flake.inputs.devshell.follows = "devshell";
   };
 
-  outputs = { self, nixpkgs, flake-utils, devshell, pyproject-nix, uv2nix, pyproject-build-systems }:
+  outputs = { self, nixpkgs, flake-utils, devshell, pyproject-nix, uv2nix, pyproject-build-systems, agent-skill-flake }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -46,6 +52,10 @@
 
         # Create virtual environment with all dependencies (including dev and test)
         pythonEnv = pythonSet.mkVirtualEnv "orbstack-machine-nixos-flakes-env" workspace.deps.all;
+
+        # Installs the skills in `skills-devshell/` into `.agents/skills/` on
+        # `nix develop`, and adds the `skills` commands.
+        devshellSkills = agent-skill-flake.lib.devshellSkillsHook { };
       in
       {
         # Development shell for working on this project
@@ -71,6 +81,7 @@
           ];
 
           devshell.startup = {
+            install-skills.text = devshellSkills.startup;
             alias-ls = {
               text = "alias ls='ls --color=always'";
             };
@@ -92,7 +103,7 @@
             };
           };
 
-          commands = [
+          commands = devshellSkills.commands ++ [
             {
               category = "app";
               name = "provision";
