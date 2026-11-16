@@ -83,6 +83,35 @@
         formatter = treefmt.config.build.wrapper;
         checks.formatting = treefmt.config.build.check self;
 
+        # The unit tests, which need no OrbStack. The integration tests in
+        # `tests/integration/` create real machines, so they run only from the
+        # dev shell.
+        checks.unit-tests =
+          pkgs.runCommand "orbstack-machine-nixos-flakes-unit-tests"
+            {
+              nativeBuildInputs = [
+                pythonEnv
+                pkgs.bash
+              ];
+              src = pkgs.lib.fileset.toSource {
+                root = ./.;
+                fileset = pkgs.lib.fileset.unions [
+                  ./orbstack-machine-nixos-flakes.py
+                  ./orbstack-nix-config/flake.nix
+                  ./pytest.ini
+                  ./tests
+                ];
+              };
+              PYTHONDONTWRITEBYTECODE = "1";
+            }
+            ''
+              cp -r "$src" source
+              chmod -R u+w source
+              cd source
+              pytest tests/unit -p no:cacheprovider
+              touch "$out"
+            '';
+
         # Development shell for working on this project
         devShells.default = devshell.legacyPackages.${system}.mkShell {
           name = "orbstack-machine-nixos-flakes";
@@ -158,6 +187,12 @@
               name = "tests";
               help = "Run all tests";
               command = ''pytest "$@"'';
+            }
+            {
+              category = "testing";
+              name = "tests-unit";
+              help = "Run only the unit tests, which need no OrbStack";
+              command = ''pytest tests/unit "$@"'';
             }
             {
               category = "testing";
