@@ -10,10 +10,12 @@ Machine with NixOS but without Flakes enabled and without the ability to add ext
 ### Initial Provisioning
 
 1. Clone this repository and cd in to the directory.
-2. Run the provisioning script (building only necessary for running tests):
+2. Enter the dev shell with `nix develop`, and create the machine with `provision`, which runs
+   `orbstack-machine-nixos-flakes.py`:
    ```bash
-   ./orbstack-machine-nixos-flakes.py create my-machine
+   provision create my-machine
    ```
+   Outside the dev shell, run `./orbstack-machine-nixos-flakes.py` with the same arguments; it needs only Python 3.9+.
 
 3. Connect to your machine:
    ```bash
@@ -24,7 +26,7 @@ Machine with NixOS but without Flakes enabled and without the ability to add ext
 
 To supplement the default Nix configuration in `orbstack-nix-config/flake.nix`, you can specify a single Nix
 configuration with the `--extra-config` command-line option added to either the `create` or `nixos-rebuild` commands of
-the `orbstack-machine-nixos-flakes.py` script.
+`provision` (the `orbstack-machine-nixos-flakes.py` script).
 
 This Nix configuration file can live in this repository in the `orbstack-nix-config/extra` directory, and will be
 ignored by Git (for convenience, so non-maintainers of this repository can store their Nix configs). But it can also
@@ -36,10 +38,10 @@ Create or modify an OrbStack Machine with NixOS Flakes enabled, with user-specif
 
 ```bash
 # Creating a new machine:
-./orbstack-machine-nixos-flakes.py create        'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
+provision create        'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
 
 # Updating an existing machine:
-./orbstack-machine-nixos-flakes.py nixos-rebuild 'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
+provision nixos-rebuild 'my-machine' --extra-config 'orbstack-nix-config/extra/extra.nix'
 ```
 
 ### Future Updates
@@ -48,7 +50,7 @@ You can update the system configuration using:
 
 - **From the host:**
   ```bash
-  ./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
+  provision nixos-rebuild my-machine
   ```
 
 - **From inside the machine:**
@@ -72,8 +74,11 @@ nix develop
 ```
 
 All Python dependencies (pytest, black, mypy, etc.) are automatically available in the Nix shell, along with the
-commands its menu lists: `provision`, `format`, `typecheck`, `tests`, `tests-fast`, `tests-verbose`, `tests-debug`,
-`tests-parallel`, `tests-coverage` and `tests-cleanup`.
+two commands its menu lists:
+
+- `provision`: creates or rebuilds a machine, as in [Usage](#usage).
+- `dev`: the development commands, `test`, `format`, `typecheck`, `python-files` and `cleanup`. `dev --help` lists
+  them, and `dev <command> --help` each one's options.
 
 ### Using pip
 
@@ -91,25 +96,28 @@ Tests are located in the `tests/` directory. See [tests/README.md](tests/README.
 
 ```bash
 # Run all tests (pytest); the integration tests create real OrbStack Machines
-tests
+dev test
 
 # Run only the unit tests, which need no OrbStack (nix flake check runs these too)
-tests-unit
+dev test --unit
 
 # Run the tests not marked slow (pytest -m 'not slow'); none of these creates a machine
-tests-fast
+dev test --fast
 
-# Run specific test file
-tests tests/integration/test_extra_config.py
+# Run a specific test file; arguments dev test doesn't know go to pytest
+dev test tests/integration/test_extra_config.py
 
-# Run with coverage
-tests-coverage
+# Run with coverage, in parallel, or with output shown as it happens
+dev test --coverage
+dev test --parallel
+dev test --debug
 
-# Delete test machines left behind by an interrupted run
-tests-cleanup
+# Delete test machines left behind by an interrupted run (--dry-run lists them)
+dev cleanup
 ```
 
-Outside the Nix shell, run `pytest` with the same arguments.
+Outside the Nix shell, run `pytest` directly: `pytest tests/unit` for the unit tests, `pytest -m 'not slow'` for the
+fast ones.
 
 ### Dependencies
 

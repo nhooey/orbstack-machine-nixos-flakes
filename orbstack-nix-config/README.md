@@ -53,7 +53,7 @@ Contains optional configuration modules that can be used with `--extra-config`:
 Enables Docker support. Use with:
 
 ```bash
-./orbstack-machine-nixos-flakes.py create my-machine \
+provision create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
@@ -65,14 +65,14 @@ The provisioning script automatically copies this directory to the OrbStack mach
 
 ```bash
 # Create a machine (uses the flake in `orbstack-nix-config/flake.nix` automatically)
-./orbstack-machine-nixos-flakes.py create my-machine
+provision create my-machine
 ```
 
 ### With Extra Configuration
 
 ```bash
 # Add Docker configuration
-./orbstack-machine-nixos-flakes.py create my-machine \
+provision create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
@@ -96,7 +96,7 @@ Pass it with `--extra-config`. The provisioning script copies it to the machine 
 the flake imports:
 
 ```bash
-./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine --extra-config orbstack-nix-config/extra/extra.nix
+provision nixos-rebuild my-machine --extra-config orbstack-nix-config/extra/extra.nix
 ```
 
 ### Manual Rebuilds
@@ -111,7 +111,7 @@ sudo NIXOS_HOSTNAME="$(hostname)" NIXOS_USERNAME="$USER" \
 From the host:
 
 ```bash
-./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
+provision nixos-rebuild my-machine
 ```
 
 ## Customization

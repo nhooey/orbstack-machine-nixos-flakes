@@ -2,7 +2,7 @@
 
 - `tests/unit/` tests the provisioning script's pure functions: architecture mapping, the flake attribute for
   each architecture, `orb list` parsing, path decisions, the bootstrap exports and the command line. They need no
-  OrbStack, and `nix flake check` runs them. Run them alone with `tests-unit`.
+  OrbStack, and `nix flake check` runs them. Run them alone with `dev test --unit`.
 - `tests/integration/` creates, provisions and deletes real OrbStack Machines. These tests are skipped when `orb`
   isn't on `PATH`.
 
@@ -58,7 +58,7 @@ pytest
 ### Run only the unit tests
 
 ```bash
-tests-unit  # pytest tests/unit
+dev test --unit  # pytest tests/unit
 ```
 
 ### Run a specific test file
@@ -76,7 +76,7 @@ pytest tests/integration/test_machine_creation.py::test_019_create_machine_defau
 ### Skip slow tests
 
 ```bash
-tests-fast  # pytest -m "not slow"
+dev test --fast  # pytest -m "not slow"
 ```
 
 Every integration test that needs a provisioned machine is marked slow, so this runs the unit tests and
@@ -218,7 +218,7 @@ orb list
 ### Manually clean up test machines
 
 ```bash
-tests-cleanup  # from the Nix dev shell
+dev cleanup  # from the Nix dev shell; --dry-run lists them
 ```
 
 ### Increase timeout for slow environments
