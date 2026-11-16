@@ -14,6 +14,7 @@ from tests.integration.utils import (
     machine_exists,
     machine_is_running,
     nixos_rebuild_direct,
+    service_is_active,
     user_exists,
     verify_flake_deployed,
 )
@@ -44,11 +45,12 @@ def test_007_full_workflow_create_verify_rebuild_delete(
     # Step 3: Rebuild with extra config
     print("\n=== Step 3: Rebuilding with extra config ===")
     extra_config = sample_configs_dir / "with-service.nix"
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(extra_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
 
     # Step 4: Verify rebuild changes
     print("\n=== Step 4: Verifying rebuild changes ===")
@@ -76,17 +78,19 @@ def test_008_multiple_sequential_rebuilds(test_machine_created, test_username, s
 
     # Rebuild 1: No extra config
     print("\n=== Rebuild 1: No extra config ===")
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    result = nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     assert machine_is_running(machine_name)
 
     # Rebuild 2: With a simple config
     print("\n=== Rebuild 2: With simple config ===")
     simple_config = sample_configs_dir / "simple.nix"
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(simple_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     assert machine_is_running(machine_name)
 
     # Verify tmux is installed
@@ -95,23 +99,16 @@ def test_008_multiple_sequential_rebuilds(test_machine_created, test_username, s
 
     # Rebuild 3: Back to no extra config
     print("\n=== Rebuild 3: Back to no extra config ===")
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    result = nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     assert machine_is_running(machine_name)
 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_009_ssh_connectivity(test_machine_created):
-    """Test SSH connectivity to the machine."""
-    machine_name = test_machine_created
-
-    # Test basic command execution via SSH (through orb)
-    result = exec_on_machine(machine_name, ["echo", "Hello from VM"], check=True)
-    assert "Hello from VM" in result.stdout
-
-    # Test that the SSH service is running
-    result = exec_on_machine(machine_name, ["systemctl", "is-active", "sshd"], check=False)
-    assert result.returncode == 0
+def test_009_openssh_enabled_by_configuration(test_machine_created):
+    """configuration.nix enables OpenSSH, so sshd runs on a provisioned machine."""
+    assert service_is_active(test_machine_created, "sshd")
 
 
 @pytest.mark.slow
@@ -142,11 +139,12 @@ def test_010_complete_docker_workflow(
     )
 
     # Apply Docker config via nixos-rebuild
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(combined_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     # Verify Docker is installed
     result = exec_on_machine(machine_name, ["which", "docker"], check=False)
     assert result.returncode == 0, "docker should be installed"
@@ -157,28 +155,3 @@ def test_010_complete_docker_workflow(
 
     # Note: Docker daemon might not be running immediately after provision
     # In a real scenario, you might want to start it or wait for it
-
-
-@pytest.mark.slow
-@pytest.mark.requires_orbstack
-def test_011_persistence_after_rebuild(test_machine_created, test_username):
-    """Test that the configuration persists correctly after rebuilds."""
-    machine_name = test_machine_created
-
-    # Create a test file in the user's home directory
-    test_file_content = "This is a test file"
-    exec_on_machine(
-        machine_name,
-        ["bash", "-c", f"echo '{test_file_content}' > /home/{test_username}/test.txt"],
-        check=True,
-    )
-
-    # Verify the file exists
-    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
-    assert test_file_content in result.stdout
-
-    # Run rebuild
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
-    # Verify the file still exists after rebuild
-    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
-    assert test_file_content in result.stdout

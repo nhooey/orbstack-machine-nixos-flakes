@@ -24,11 +24,12 @@ def test_012_extra_config_with_simple_package(
     extra_config = sample_configs_dir / "simple.nix"
 
     # Apply extra config via nixos-rebuild
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(extra_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     assert machine_exists(machine_name)
 
     # Verify tmux is installed (from simple.nix)
@@ -43,11 +44,12 @@ def test_013_extra_config_with_marker_file(test_machine_created, test_username, 
     machine_name = test_machine_created
     extra_config = sample_configs_dir / "with-service.nix"
 
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(extra_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     # Verify marker file exists (from with-service.nix)
     assert file_exists_on_machine(machine_name, "/etc/test-marker")
 
@@ -61,24 +63,6 @@ def test_013_extra_config_with_marker_file(test_machine_created, test_username, 
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_014_extra_config_on_rebuild(test_machine_created, test_username, sample_configs_dir):
-    """Test applying --extra-config on nixos-rebuild."""
-    machine_name = test_machine_created
-    extra_config = sample_configs_dir / "simple.nix"
-
-    # Run rebuild with extra config
-    nixos_rebuild_direct(
-        machine_name=machine_name,
-        username=test_username,
-        extra_config=str(extra_config),
-    )
-
-    # Now tmux should be installed
-    result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
-    assert result.returncode == 0, "tmux should be installed after rebuild with extra config"
-
-
-@pytest.mark.requires_orbstack
 def test_015_extra_config_nonexistent_file(test_machine_created, test_username):
     """Test that --extra-config with a non-existent file fails gracefully."""
     machine_name = test_machine_created
@@ -91,7 +75,7 @@ def test_015_extra_config_nonexistent_file(test_machine_created, test_username):
 
     # Should fail with non-zero return code
     assert result.returncode != 0, "Should fail when extra_config file doesn't exist"
-    assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()
+    assert f"The user config file was not found: {fake_config}" in result.stderr
 
 
 @pytest.mark.slow
@@ -123,11 +107,12 @@ def test_016_extra_config_relative_path(test_machine_created, project_root, test
         os.chdir(project_root)
         # Use a path relative to the project root
         relative_path = extra_config.relative_to(project_root)
-        nixos_rebuild_direct(
+        result = nixos_rebuild_direct(
             machine_name=machine_name,
             username=test_username,
             extra_config=str(relative_path),
         )
+        assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
 
         assert machine_exists(machine_name)
 
@@ -170,11 +155,12 @@ def test_017_extra_config_from_nix_extra_config_dir(
 """
     )
 
-    nixos_rebuild_direct(
+    result = nixos_rebuild_direct(
         machine_name=machine_name,
         username=test_username,
         extra_config=str(combined_config),
     )
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
     assert machine_exists(machine_name)
 
     # Verify docker is available
@@ -185,29 +171,5 @@ def test_017_extra_config_from_nix_extra_config_dir(
     result = exec_on_machine(
         machine_name, ["systemctl", "is-enabled", "docker.service"], check=False
     )
-    # Service should at least be configured even if not running
-    assert result.returncode == 0 or "enabled" in result.stdout.lower()
-
-
-@pytest.mark.slow
-@pytest.mark.requires_orbstack
-def test_018_extra_config_environment_variable_passed(
-    test_machine_created, test_username, sample_configs_dir
-):
-    """Test that the NIXOS_EXTRA_CONFIG environment variable is correctly passed to a bootstrap script via nixos-rebuild."""
-    machine_name = test_machine_created
-    extra_config = sample_configs_dir / "with-service.nix"
-
-    nixos_rebuild_direct(
-        machine_name=machine_name,
-        username=test_username,
-        extra_config=str(extra_config),
-    )
-    # The extra config was successfully applied (a marker file exists)
-    assert file_exists_on_machine(machine_name, "/etc/test-marker")
-
-    # This proves that:
-    # 1. Extra config was copied to VM
-    # 2. NIXOS_EXTRA_CONFIG env var was set
-    # 3. Bootstrap script used it correctly
-    # 4. Flake imported the extra config successfully
+    # docker.nix enables Docker, which starts on boot by default.
+    assert result.stdout.strip() == "enabled"

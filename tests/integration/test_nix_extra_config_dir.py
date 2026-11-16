@@ -124,7 +124,8 @@ def test_029_nix_extra_config_dir_on_rebuild(test_machine_created, test_username
     assert result.returncode != 0, "Directory should be deleted"
 
     # Run rebuild
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    result = nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
 
     # Now the directory should exist again
     result = exec_on_machine(
@@ -189,6 +190,7 @@ def test_030_nix_extra_config_with_multiple_files(
             delete_machine(machine_name, force=True)
 
 
+@pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_031_without_nix_extra_config_dir(
     unique_machine_name, project_root, test_username, tmp_path
