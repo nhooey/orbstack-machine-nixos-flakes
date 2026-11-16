@@ -162,7 +162,7 @@
               category = "testing";
               name = "tests-coverage";
               help = "Run tests with coverage report";
-              command = ''pytest --cov=provision_orbstack --cov-report=html --cov-report=term "$@"'';
+              command = ''pytest --cov=. --cov-report=html --cov-report=term "$@"'';
             }
             {
               category = "testing";
