@@ -5,7 +5,7 @@ This directory contains comprehensive integration tests for the OrbStack NixOS p
 ## Prerequisites
 
 1. **OrbStack** must be installed and running
-2. **Python 3.8+** required
+2. **Python 3.9+** required
 3. **pytest** and test dependencies
 
 Install test dependencies:
@@ -52,7 +52,7 @@ pytest tests/test_machine_creation.py
 ### Run a specific test
 
 ```bash
-pytest tests/test_machine_creation.py::test_create_machine_default_settings
+pytest tests/test_machine_creation.py::test_019_create_machine_default_settings
 ```
 
 ### Skip slow tests
@@ -210,7 +210,7 @@ orb list
 ### Manually clean up test machines
 
 ```bash
-orb list | grep test-orbstack | awk '{print $1}' | xargs -I {} orb delete -f {}
+tests-cleanup  # from the Nix dev shell
 ```
 
 ### Increase timeout for slow environments
@@ -255,7 +255,7 @@ Install OrbStack from https://orbstack.dev/
 
 ### "Machine did not become ready" timeout
 
-Increase timeout in `test_machine_creation.py` or check OrbStack performance
+The script waits 60 seconds for a new machine (`max_wait` in `wait_for_machine_ready()` in `orbstack-machine-nixos-flakes.py`). Raise it, or check OrbStack performance
 
 ### Import errors
 

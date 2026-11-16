@@ -53,11 +53,12 @@ You can update the system configuration using:
 
 - **From inside the machine:**
   ```bash
-  sudo nixos-rebuild switch --flake /etc/nixos#default --impure
+  sudo NIXOS_HOSTNAME="$(hostname)" NIXOS_USERNAME="$USER" \
+    nixos-rebuild switch --flake /etc/nixos#default --impure
   ```
-
-- **Using Colmena** (for managing multiple machines):
-  Configure Colmena to target your OrbStack machines via SSH.
+  The flake reads the hostname and username from these variables on every build, and falls back to `nixos` for
+  both when they're unset. Use `#x86_64` in place of `#default` on an x86_64 machine, and add
+  `NIXOS_EXTRA_CONFIG=/path/to/extra.nix` to keep an extra configuration.
 
 ## Development
 
@@ -70,21 +71,18 @@ The project includes a Nix flake with a complete development environment:
 nix develop
 ```
 
-All Python dependencies (pytest, black, mypy, etc.) are automatically available in the Nix shell.
+All Python dependencies (pytest, black, mypy, etc.) are automatically available in the Nix shell, along with the
+commands its menu lists: `provision`, `format`, `typecheck`, `tests`, `tests-fast`, `tests-verbose`, `tests-debug`,
+`tests-parallel`, `tests-coverage` and `tests-cleanup`.
 
 ### Using pip
 
-If you're not using Nix, install dependencies with pip:
+If you're not using Nix, install dependencies with pip into a virtual environment of your own (the Nix shell has no
+`pip`):
 
 ```bash
 # Install development and test dependencies
 pip install -e ".[dev,test]"
-
-# Run tests
-pytest
-
-# Run fast tests only
-pytest -m "not slow"
 ```
 
 ### Running Tests
@@ -92,18 +90,23 @@ pytest -m "not slow"
 Tests are located in the `tests/` directory. See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ```bash
-# Run all tests
-pytest
+# Run all tests (pytest)
+tests
 
-# Run fast tests (skip machine creation)
-pytest -m "not slow"
+# Run the tests not marked slow (pytest -m 'not slow'); some of these still create a machine
+tests-fast
 
 # Run specific test file
-pytest tests/test_extra_config.py
+tests tests/test_extra_config.py
 
 # Run with coverage
-pytest --cov=provision_orbstack --cov-report=html
+tests-coverage
+
+# Delete test machines left behind by an interrupted run
+tests-cleanup
 ```
+
+Outside the Nix shell, run `pytest` with the same arguments.
 
 ### Dependencies
 
