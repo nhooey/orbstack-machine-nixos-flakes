@@ -21,10 +21,24 @@
     agent-skill-flake.url = "github:nhooey/agent-skill-flake";
     agent-skill-flake.inputs.nixpkgs.follows = "nixpkgs";
     agent-skill-flake.inputs.devshell.follows = "devshell";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, flake-utils, devshell, pyproject-nix, uv2nix, pyproject-build-systems, agent-skill-flake }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      devshell,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+      agent-skill-flake,
+      treefmt-nix,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         python = pkgs.python3;
@@ -56,8 +70,17 @@
         # Installs the skills in `skills-devshell/` into `.agents/skills/` on
         # `nix develop`, and adds the `skills` commands.
         devshellSkills = agent-skill-flake.lib.devshellSkillsHook { };
+
+        # `nix fmt` formats the Python and Nix files.
+        treefmt = treefmt-nix.lib.evalModule pkgs {
+          projectRootFile = "flake.nix";
+          programs.black.enable = true;
+          programs.nixfmt.enable = true;
+        };
       in
       {
+        formatter = treefmt.config.build.wrapper;
+
         # Development shell for working on this project
         devShells.default = devshell.legacyPackages.${system}.mkShell {
           name = "orbstack-machine-nixos-flakes";
@@ -119,8 +142,8 @@
             {
               category = "code";
               name = "format";
-              help = "Format Python code with black";
-              command = ''black $(python-source-files) tests/ "$@"'';
+              help = "Format the Python and Nix files with treefmt (nix fmt)";
+              command = ''nix fmt -- "$@"'';
             }
             {
               category = "code";
@@ -181,5 +204,6 @@
             }
           ];
         };
-      });
+      }
+    );
 }
