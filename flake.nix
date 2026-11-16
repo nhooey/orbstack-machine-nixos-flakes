@@ -71,7 +71,8 @@
         # `nix develop`, and adds the `skills` commands.
         devshellSkills = agent-skill-flake.lib.devshellSkillsHook { };
 
-        # `nix fmt` formats the Python and Nix files.
+        # `nix fmt` formats the Python and Nix files; `nix flake check` fails on
+        # any file it would change.
         treefmt = treefmt-nix.lib.evalModule pkgs {
           projectRootFile = "flake.nix";
           programs.black.enable = true;
@@ -80,6 +81,7 @@
       in
       {
         formatter = treefmt.config.build.wrapper;
+        checks.formatting = treefmt.config.build.check self;
 
         # Development shell for working on this project
         devShells.default = devshell.legacyPackages.${system}.mkShell {
