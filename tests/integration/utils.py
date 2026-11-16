@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+from types import ModuleType
+
+from tests import provision_module
+from tests.provision_module import PROJECT_ROOT
 
 # Constants
 PROVISION_SCRIPT_NAME = "orbstack-machine-nixos-flakes.py"
@@ -166,9 +171,7 @@ def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_stopped(machine_name):
-            print(
-                f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr
-            )
+            print(f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr)
             return True
         time.sleep(2)
         elapsed += 2
@@ -201,9 +204,7 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
 
     # Clone the machine
     print(f"[TEST] Cloning {source_name} to {dest_name}...", file=sys.stderr)
-    result = run_command(
-        ["orb", "clone", source_name, dest_name], check=False, timeout=120
-    )
+    result = run_command(["orb", "clone", source_name, dest_name], check=False, timeout=120)
     if result.returncode != 0:
         print(f"[TEST] Failed to clone machine: {result.stderr}", file=sys.stderr)
         return False
@@ -271,9 +272,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
     Waits for network-online.target and verifies DNS resolution works.
     This prevents intermittent DNS failures during nix builds.
     """
-    print(
-        f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr
-    )
+    print(f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr)
 
     # Wait for network-online.target
     elapsed = 0
@@ -342,9 +341,7 @@ def get_installed_packages(machine_name: str) -> list[str]:
 
 def service_is_active(machine_name: str, service_name: str) -> bool:
     """Check if a systemd service is active."""
-    result = exec_on_machine(
-        machine_name, ["systemctl", "is-active", service_name], check=False
-    )
+    result = exec_on_machine(machine_name, ["systemctl", "is-active", service_name], check=False)
     return result.returncode == 0 and result.stdout.strip() == "active"
 
 
@@ -374,9 +371,7 @@ def get_nix_system_architecture(machine_name: str) -> str:
     return str(result.stdout).strip()
 
 
-def verify_flake_deployed(
-    machine_name: str, expected_files: list[str] | None = None
-) -> bool:
+def verify_flake_deployed(machine_name: str, expected_files: list[str] | None = None) -> bool:
     """Verify flake files exist in /etc/nixos/."""
     if expected_files is None:
         expected_files = ["flake.nix", "flake.lock", "configuration.nix"]
@@ -388,39 +383,18 @@ def verify_flake_deployed(
 
 
 def orbstack_is_installed() -> bool:
-    """Check if OrbStack is installed and available."""
-    result = run_command(["which", "orb"], check=False)
-    return result.returncode == 0
+    """Check if OrbStack's `orb` command is on PATH."""
+    return shutil.which("orb") is not None
 
 
 def get_project_root() -> Path:
     """Get the project root directory."""
-    return Path(__file__).parent.parent
+    return PROJECT_ROOT
 
 
-def get_provision_script_path() -> Path:
-    """Get the path to the provision script."""
-    return get_project_root() / PROVISION_SCRIPT_NAME
-
-
-def import_provision_script():
-    """
-    Import the provision script as a module.
-
-    Returns the module object which can be used to access functions like get_architecture.
-    This is needed because the script has a hyphen in the filename.
-    """
-    import importlib.util
-    import sys
-
-    spec = importlib.util.spec_from_file_location(
-        "orbstack_nixos_provision", get_provision_script_path()
-    )
-    provision_module = importlib.util.module_from_spec(spec)
-    sys.modules["orbstack_nixos_provision"] = provision_module
-    spec.loader.exec_module(provision_module)
-
-    return provision_module
+def import_provision_script() -> ModuleType:
+    """Return the provisioning script as a module."""
+    return provision_module.load()
 
 
 def create_machine_only_direct(
@@ -451,7 +425,7 @@ def _print_operation_details(
     machine_name: str,
     hostname: str,
     username: str,
-    flake_attr: str,
+    flake_attr: str | None,
     extra_config: str | None = None,
     recreate: bool = False,
 ) -> None:
@@ -473,7 +447,7 @@ def create_machine_direct(
     arch: str | None = None,
     extra_config: str | None = None,
     recreate: bool = False,
-    flake_attr: str = "default",
+    flake_attr: str | None = None,
     verbose: bool = True,
 ) -> None:
     """
@@ -523,7 +497,7 @@ def nixos_rebuild_direct(
     username: str,
     hostname: str | None = None,
     extra_config: str | None = None,
-    flake_attr: str = "default",
+    flake_attr: str | None = None,
     verbose: bool = True,
 ) -> subprocess.CompletedProcess:
     """

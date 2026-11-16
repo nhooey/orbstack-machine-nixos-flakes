@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     file_exists_on_machine,
     machine_exists,
     machine_is_running,

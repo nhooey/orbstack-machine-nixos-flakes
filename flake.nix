@@ -15,10 +15,30 @@
     pyproject-build-systems.inputs.pyproject-nix.follows = "pyproject-nix";
     pyproject-build-systems.inputs.uv2nix.follows = "uv2nix";
     pyproject-build-systems.inputs.nixpkgs.follows = "nixpkgs";
+    # The builder lib for the dev shell's skills, not a skill: its
+    # `devshellSkillsHook` runs the `skills-devshell/` sub-flake on
+    # `nix develop`, so this flake carries no skill inputs.
+    agent-skill-flake.url = "github:nhooey/agent-skill-flake";
+    agent-skill-flake.inputs.nixpkgs.follows = "nixpkgs";
+    agent-skill-flake.inputs.devshell.follows = "devshell";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, flake-utils, devshell, pyproject-nix, uv2nix, pyproject-build-systems }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      devshell,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+      agent-skill-flake,
+      treefmt-nix,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         python = pkgs.python3;
@@ -46,8 +66,53 @@
 
         # Create virtual environment with all dependencies (including dev and test)
         pythonEnv = pythonSet.mkVirtualEnv "orbstack-machine-nixos-flakes-env" workspace.deps.all;
+
+        # Installs the skills in `skills-devshell/` into `.agents/skills/` on
+        # `nix develop`, and adds the `skills` commands.
+        devshellSkills = agent-skill-flake.lib.devshellSkillsHook { };
+
+        # `nix fmt` formats the Python and Nix files; `nix flake check` fails on
+        # any file it would change.
+        treefmt = treefmt-nix.lib.evalModule pkgs {
+          projectRootFile = "flake.nix";
+          programs.black.enable = true;
+          programs.nixfmt.enable = true;
+        };
       in
       {
+        formatter = treefmt.config.build.wrapper;
+        checks.formatting = treefmt.config.build.check self;
+
+        # The unit tests, which need no OrbStack. The integration tests in
+        # `tests/integration/` create real machines, so they run only from the
+        # dev shell.
+        checks.unit-tests =
+          pkgs.runCommand "orbstack-machine-nixos-flakes-unit-tests"
+            {
+              nativeBuildInputs = [
+                pythonEnv
+                pkgs.bash
+              ];
+              src = pkgs.lib.fileset.toSource {
+                root = ./.;
+                fileset = pkgs.lib.fileset.unions [
+                  ./orbstack-machine-nixos-flakes.py
+                  ./orbstack-nix-config/flake.nix
+                  ./pytest.ini
+                  ./tests
+                  ./tools
+                ];
+              };
+              PYTHONDONTWRITEBYTECODE = "1";
+            }
+            ''
+              cp -r "$src" source
+              chmod -R u+w source
+              cd source
+              pytest tests/unit -p no:cacheprovider
+              touch "$out"
+            '';
+
         # Development shell for working on this project
         devShells.default = devshell.legacyPackages.${system}.mkShell {
           name = "orbstack-machine-nixos-flakes";
@@ -71,6 +136,7 @@
           ];
 
           devshell.startup = {
+            install-skills.text = devshellSkills.startup;
             alias-ls = {
               text = "alias ls='ls --color=always'";
             };
@@ -92,83 +158,21 @@
             };
           };
 
-          commands = [
+          commands = devshellSkills.commands ++ [
             {
               category = "app";
               name = "provision";
-              help = "Run the provisioning script";
-              command = ''./orbstack-machine-nixos-flakes.py "$@"'';
+              help = "Create an OrbStack NixOS machine or rebuild one (create, nixos-rebuild)";
+              command = ''exec "$PRJ_ROOT/orbstack-machine-nixos-flakes.py" "$@"'';
             }
             {
               category = "code";
-              name = "python-source-files";
-              help = "List Python source files in the project";
-              command = "git ls-files | egrep '\.py$'";
-            }
-            {
-              category = "code";
-              name = "format";
-              help = "Format Python code with black";
-              command = ''black $(python-source-files) tests/ "$@"'';
-            }
-            {
-              category = "code";
-              name = "typecheck";
-              help = "Run mypy type checker";
-              command = ''mypy $(python-source-files) "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests";
-              help = "Run all tests";
-              command = ''pytest "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-fast";
-              help = "Run only fast tests (skip slow machine creation tests)";
-              command = ''pytest -m 'not slow' "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-verbose";
-              help = "Run tests with verbose output";
-              command = ''pytest -v "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-debug";
-              help = "Run tests with real-time output (no capture)";
-              command = ''pytest -s -vv "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-parallel";
-              help = "Run tests in parallel";
-              command = ''pytest -n auto "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-coverage";
-              help = "Run tests with coverage report";
-              command = ''pytest --cov=provision_orbstack --cov-report=html --cov-report=term "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-cleanup";
-              help = "Clean up leftover test machines";
-              command = ''
-                machines=$(orb list | grep -E '^test-nixos-[0-9]{13}-*' | awk '{print $1}')
-                if [ -n "$machines" ]; then
-                  echo "Deleting the following OrbStack Machines:"
-                  echo "$machines" | sed 's/^/  /'
-                  echo "$machines" | xargs -I {} orb delete -f {}
-                else
-                  echo "No test machines to clean up."
-                fi
-              '';
+              name = "dev";
+              help = "Run the tests, format, type-check or clean up test machines (dev --help)";
+              command = ''exec python "$PRJ_ROOT/tools/dev.py" "$@"'';
             }
           ];
         };
-      });
+      }
+    );
 }

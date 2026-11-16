@@ -1,4 +1,12 @@
-{ config, pkgs, lib, hostname, username, modulesPath, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  hostname,
+  username,
+  modulesPath,
+  ...
+}:
 
 let
   # Use provided hostname or fall back to "nixos"
@@ -21,9 +29,11 @@ in
     firewall.enable = true;
   };
 
-
   # Enable Nix flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Boot loader (OrbStack doesn't use traditional bootloader)
   boot.loader.grub.enable = false;
@@ -74,7 +84,11 @@ in
     isNormalUser = true;
     createHome = true;
     home = "/home/${actualUsername}";
-    extraGroups = [ "wheel" "networkmanager" "docker" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "docker"
+    ];
     initialPassword = "nixos";
     shell = pkgs.bash;
   };

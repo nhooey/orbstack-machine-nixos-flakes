@@ -26,24 +26,6 @@ build-backend = "hatchling.build"
 # Include the main script as a py_modules entry
 only-include = ["orbstack-machine-nixos-flakes.py"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = [
-    "-v",
-    "--tb=short",
-    "--strict-markers",
-    "--log-cli-level=INFO",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "requires_orbstack: marks tests that require OrbStack to be installed",
-]
-timeout = 300
-timeout_method = "thread"
-
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py313"]

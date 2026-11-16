@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     BOOTSTRAP_SCRIPT_NAME,
     FLAKE_EXTRA_DIR,
     FLAKE_REPO_DIR,
@@ -49,9 +49,7 @@ def test_025_nix_extra_config_dir_copied(test_machine_created):
 
     # The directory should exist
     result = exec_on_machine(machine_name, ["test", "-d", base_path], check=False)
-    assert result.returncode == 0, (
-        "The orbstack-nix-config/extra directory should exist on the VM"
-    )
+    assert result.returncode == 0, "The orbstack-nix-config/extra directory should exist on the VM"
 
 
 @pytest.mark.slow
@@ -63,9 +61,9 @@ def test_026_nix_extra_config_files_present(test_machine_created):
     # Check for the known files from the orbstack-nix-config/extra directory
     docker_nix = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
 
-    assert file_exists_on_machine(machine_name, docker_nix), (
-        "docker.nix should be copied from orbstack-nix-config/extra/lib/"
-    )
+    assert file_exists_on_machine(
+        machine_name, docker_nix
+    ), "docker.nix should be copied from orbstack-nix-config/extra/lib/"
 
 
 @pytest.mark.slow
@@ -126,7 +124,8 @@ def test_029_nix_extra_config_dir_on_rebuild(test_machine_created, test_username
     assert result.returncode != 0, "Directory should be deleted"
 
     # Run rebuild
-    nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    result = nixos_rebuild_direct(machine_name=machine_name, username=test_username)
+    assert result.returncode == 0, f"Rebuild failed: {result.stderr}"
 
     # Now the directory should exist again
     result = exec_on_machine(
@@ -143,7 +142,7 @@ def test_030_nix_extra_config_with_multiple_files(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test the orbstack-nix-config/extra directory with multiple files in a nested structure."""
-    from tests.utils import delete_machine
+    from tests.integration.utils import delete_machine
 
     # Create a test project directory with custom orbstack-nix-config/extra
     test_project = tmp_path / "test-project"
@@ -191,12 +190,13 @@ def test_030_nix_extra_config_with_multiple_files(
             delete_machine(machine_name, force=True)
 
 
+@pytest.mark.slow
 @pytest.mark.requires_orbstack
 def test_031_without_nix_extra_config_dir(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test that provisioning works even without the orbstack-nix-config/extra directory."""
-    from tests.utils import delete_machine
+    from tests.integration.utils import delete_machine
 
     # Create a minimal test project without orbstack-nix-config/extra
     test_project = tmp_path / "minimal-project"

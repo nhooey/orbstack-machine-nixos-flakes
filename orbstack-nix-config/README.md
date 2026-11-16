@@ -10,6 +10,9 @@ orbstack-nix-config/
 ├── flake.nix           # NixOS flake configuration
 ├── configuration.nix   # Base NixOS system configuration
 ├── extra/              # Optional extra configurations
+│   ├── examples/      # Example extra configurations
+│   │   ├── simple.nix
+│   │   └── include-lib.nix
 │   ├── lib/           # Reusable configuration modules
 │   │   └── docker.nix # Docker configuration
 │   └── README.md      # Documentation for extra configs
@@ -50,7 +53,7 @@ Contains optional configuration modules that can be used with `--extra-config`:
 Enables Docker support. Use with:
 
 ```bash
-./orbstack-machine-nixos-flakes.py create my-machine \
+provision create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
@@ -62,20 +65,21 @@ The provisioning script automatically copies this directory to the OrbStack mach
 
 ```bash
 # Create a machine (uses the flake in `orbstack-nix-config/flake.nix` automatically)
-./orbstack-machine-nixos-flakes.py create my-machine
+provision create my-machine
 ```
 
 ### With Extra Configuration
 
 ```bash
 # Add Docker configuration
-./orbstack-machine-nixos-flakes.py create my-machine \
+provision create my-machine \
   --extra-config orbstack-nix-config/extra/lib/docker.nix
 ```
 
 ### Custom User Configuration
 
-Create a `user-extra.nix` file in the project root (not in this directory) for your custom settings:
+Write your custom settings in a Nix file of your own, for example `extra/extra.nix` (Git ignores it) or a file in
+another repository:
 
 ```nix
 { config, pkgs, ... }:
@@ -88,20 +92,26 @@ Create a `user-extra.nix` file in the project root (not in this directory) for y
 }
 ```
 
-The flake automatically imports `../user-extra.nix` if it exists.
+Pass it with `--extra-config`. The provisioning script copies it to the machine and sets `NIXOS_EXTRA_CONFIG`, which
+the flake imports:
+
+```bash
+provision nixos-rebuild my-machine --extra-config orbstack-nix-config/extra/extra.nix
+```
 
 ### Manual Rebuilds
 
-From inside the machine:
+From inside the machine, passing the hostname and username, which otherwise fall back to `nixos`:
 
 ```bash
-sudo nixos-rebuild switch --flake /etc/nixos#default --impure
+sudo NIXOS_HOSTNAME="$(hostname)" NIXOS_USERNAME="$USER" \
+  nixos-rebuild switch --flake /etc/nixos#default --impure
 ```
 
 From the host:
 
 ```bash
-./orbstack-machine-nixos-flakes.py nixos-rebuild my-machine
+provision nixos-rebuild my-machine
 ```
 
 ## Customization
@@ -136,7 +146,7 @@ The flake provides separate configurations for different architectures:
 - Use `#default` for aarch64 (Apple Silicon)
 - Use `#x86_64` for x86_64 systems
 
-The provisioning script selects the appropriate one automatically.
+The provisioning script picks the one for the machine's architecture, unless `--flake-attr` names another.
 
 ## Development
 
