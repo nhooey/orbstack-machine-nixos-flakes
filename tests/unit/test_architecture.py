@@ -73,6 +73,21 @@ def test_flake_attr_for_arch(arch, expected):
     assert provision.flake_attr_for_arch(arch) == expected
 
 
+@pytest.mark.parametrize(
+    "flake_attr,arch,expected",
+    [
+        (None, "aarch64", "default"),
+        (None, "x86_64", "x86_64"),
+        (None, "amd64", "x86_64"),
+        # An attribute given on the command line wins over the architecture.
+        ("custom", "x86_64", "custom"),
+        ("default", "x86_64", "default"),
+    ],
+)
+def test_choose_flake_attr(flake_attr, arch, expected):
+    assert provision.choose_flake_attr(flake_attr, arch) == expected
+
+
 def test_flake_attrs_build_the_matching_system():
     """Each flake attribute the script picks builds a system of its architecture."""
     flake_text = (PROJECT_ROOT / "orbstack-nix-config" / "flake.nix").read_text()

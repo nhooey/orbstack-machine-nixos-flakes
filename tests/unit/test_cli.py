@@ -13,12 +13,21 @@ def test_create_defaults():
     args = provision.parse_args(["create", "machine"])
     assert (args.command, args.machine_name) == ("create", "machine")
     assert args.arch is None
+    # No default attribute, so the script picks the one for the architecture.
+    assert args.flake_attr is None
     assert args.hostname is None
     assert args.username is None
     assert args.extra_config is None
     assert args.recreate is False
     assert args.timeout == provision.DEFAULT_TIMEOUT
     assert args.verbose is False
+
+
+def test_nixos_rebuild_defaults():
+    args = provision.parse_args(["nixos-rebuild", "machine"])
+    assert (args.command, args.machine_name) == ("nixos-rebuild", "machine")
+    assert args.flake_attr is None
+    assert (args.hostname, args.username, args.extra_config) == (None, None, None)
 
 
 def test_create_options():

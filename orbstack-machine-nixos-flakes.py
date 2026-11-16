@@ -73,6 +73,11 @@ def flake_attr_for_arch(arch: str) -> str:
     return FLAKE_ATTR_BY_NIX_ARCH[ARCH_MAPPING[arch][1]]
 
 
+def choose_flake_attr(flake_attr: str | None, arch: str) -> str:
+    """Return the flake attribute given on the command line, or the one for arch."""
+    return flake_attr or flake_attr_for_arch(arch)
+
+
 def machine_state(orb_list_output: str, machine_name: str) -> str | None:
     """Return a machine's state from `orb list` output, or None if it isn't listed.
 
@@ -666,7 +671,7 @@ def create_machine_only(
 
 def create_machine(
     machine_name: str,
-    flake_attr: str,
+    flake_attr: str | None,
     hostname: str,
     username: str,
     arch: str | None,
@@ -675,14 +680,17 @@ def create_machine(
     verbose: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
-    """Create and provision a new OrbStack NixOS machine."""
+    """Create and provision a new OrbStack NixOS machine.
+
+    Without a flake_attr, builds the flake attribute for the machine's architecture.
+    """
     # Step 1: Create OrbStack machine (without provisioning)
     create_machine_only(machine_name, arch, recreate, verbose=verbose, timeout=timeout)
 
     # Step 2: Provision NixOS using the rebuild function
     run_nixos_rebuild(
         machine_name,
-        flake_attr,
+        choose_flake_attr(flake_attr, arch or detect_host_arch(verbose, timeout)),
         hostname,
         username,
         extra_config,
@@ -697,14 +705,17 @@ def create_machine(
 
 def nixos_rebuild(
     machine_name: str,
-    flake_attr: str,
+    flake_attr: str | None,
     hostname: str,
     username: str,
     extra_config: str | None = None,
     verbose: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
-    """Run nixos-rebuild switch on an existing machine."""
+    """Run nixos-rebuild switch on an existing machine.
+
+    Without a flake_attr, builds the flake attribute for the machine's architecture.
+    """
     if not machine_exists(machine_name, verbose=verbose, timeout=timeout):
         print(f"Error: Machine '{machine_name}' does not exist.", file=sys.stderr)
         print(f"Create it first with: {SCRIPT_NAME} create", file=sys.stderr)
@@ -716,7 +727,7 @@ def nixos_rebuild(
 
     run_nixos_rebuild(
         machine_name,
-        flake_attr,
+        choose_flake_attr(flake_attr, detect_machine_arch(machine_name, verbose, timeout)),
         hostname,
         username,
         extra_config,
@@ -771,8 +782,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     create_parser.add_argument(
         "--flake-attr",
-        default="default",
-        help="Flake attribute to build (default: default)",
+        default=None,
+        help="Flake attribute to build (default: `default` for aarch64, `x86_64` for x86_64)",
     )
     create_parser.add_argument("--hostname", help="Hostname to set (default: same as machine-name)")
     create_parser.add_argument(
@@ -794,8 +805,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     rebuild_parser.add_argument("machine_name", help="Name of the OrbStack machine")
     rebuild_parser.add_argument(
         "--flake-attr",
-        default="default",
-        help="Flake attribute to build (default: default)",
+        default=None,
+        help=(
+            "Flake attribute to build "
+            "(default: the machine's architecture, `default` for aarch64, `x86_64` for x86_64)"
+        ),
     )
     rebuild_parser.add_argument(
         "--hostname", help="Hostname to set (default: same as machine-name)"

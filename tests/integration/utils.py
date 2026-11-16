@@ -425,7 +425,7 @@ def _print_operation_details(
     machine_name: str,
     hostname: str,
     username: str,
-    flake_attr: str,
+    flake_attr: str | None,
     extra_config: str | None = None,
     recreate: bool = False,
 ) -> None:
@@ -447,7 +447,7 @@ def create_machine_direct(
     arch: str | None = None,
     extra_config: str | None = None,
     recreate: bool = False,
-    flake_attr: str = "default",
+    flake_attr: str | None = None,
     verbose: bool = True,
 ) -> None:
     """
@@ -497,7 +497,7 @@ def nixos_rebuild_direct(
     username: str,
     hostname: str | None = None,
     extra_config: str | None = None,
-    flake_attr: str = "default",
+    flake_attr: str | None = None,
     verbose: bool = True,
 ) -> subprocess.CompletedProcess:
     """

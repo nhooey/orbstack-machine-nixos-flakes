@@ -146,7 +146,7 @@ The flake provides separate configurations for different architectures:
 - Use `#default` for aarch64 (Apple Silicon)
 - Use `#x86_64` for x86_64 systems
 
-The provisioning script selects the appropriate one automatically.
+The provisioning script picks the one for the machine's architecture, unless `--flake-attr` names another.
 
 ## Development
 
