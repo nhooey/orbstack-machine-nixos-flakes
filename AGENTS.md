@@ -5,6 +5,6 @@ Provisions and maintains OrbStack Machines running NixOS with Flakes enabled. `o
 ## Build and test
 
 - `nix develop`: the dev shell, with Python and its dev and test dependencies from `uv.lock`, the `provision`, `format`, `typecheck` and `tests*` commands, and the project's skills installed into `.agents/skills/` from the `skills-devshell/` sub-flake.
-- `tests-fast` (`pytest -m 'not slow'`): the tests that don't create OrbStack Machines. `tests` runs them all, which needs OrbStack installed.
+- `tests` (`pytest`) runs every test, and `tests-fast` (`pytest -m 'not slow'`) the ones not marked slow. Both need OrbStack installed: every test file is skipped without `orb` on `PATH`, and `tests-fast` still creates a machine for the unmarked tests that use the `test_machine_created` fixture. Running them creates and deletes real OrbStack Machines; `tests-cleanup` deletes any left behind.
 - `format` (black) and `typecheck` (mypy) check the Python.
 - `nix flake check`: evaluates the dev shell.
