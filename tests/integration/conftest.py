@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import getpass
 import time
+from pathlib import Path
 from typing import Generator
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     clone_machine,
     create_machine_direct,
     delete_machine,
@@ -18,23 +19,13 @@ from tests.utils import (
 )
 
 
-def pytest_configure(config):
-    """Register custom markers."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line(
-        "markers",
-        "requires_orbstack: marks tests that require OrbStack to be installed",
-    )
-
-
 def pytest_collection_modifyitems(items):
-    """Auto-mark tests based on conditions."""
+    """Skip the integration tests, and only those, when OrbStack isn't installed."""
     if not orbstack_is_installed():
         skip_orbstack = pytest.mark.skip(reason="OrbStack not installed")
+        integration_dir = Path(__file__).parent
         for item in items:
-            if "requires_orbstack" in item.keywords or item.fspath.basename.startswith("test_"):
+            if integration_dir in Path(item.fspath).parents:
                 item.add_marker(skip_orbstack)
 
 
@@ -96,7 +87,7 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
     """
     import sys
 
-    from tests.utils import stop_machine
+    from tests.integration.utils import stop_machine
 
     template_name = f"test-nixos-MASTER-{session_timestamp}"
 
@@ -176,7 +167,7 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     """
     import sys
 
-    from tests.utils import nixos_rebuild_direct, start_machine
+    from tests.integration.utils import nixos_rebuild_direct, start_machine
 
     machine_name = test_machine
 

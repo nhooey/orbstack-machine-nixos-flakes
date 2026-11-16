@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+from types import ModuleType
+
+from tests import provision_module
+from tests.provision_module import PROJECT_ROOT
 
 # Constants
 PROVISION_SCRIPT_NAME = "orbstack-machine-nixos-flakes.py"
@@ -378,39 +383,18 @@ def verify_flake_deployed(machine_name: str, expected_files: list[str] | None = 
 
 
 def orbstack_is_installed() -> bool:
-    """Check if OrbStack is installed and available."""
-    result = run_command(["which", "orb"], check=False)
-    return result.returncode == 0
+    """Check if OrbStack's `orb` command is on PATH."""
+    return shutil.which("orb") is not None
 
 
 def get_project_root() -> Path:
     """Get the project root directory."""
-    return Path(__file__).parent.parent
+    return PROJECT_ROOT
 
 
-def get_provision_script_path() -> Path:
-    """Get the path to the provision script."""
-    return get_project_root() / PROVISION_SCRIPT_NAME
-
-
-def import_provision_script():
-    """
-    Import the provision script as a module.
-
-    Returns the module object which can be used to access functions like get_architecture.
-    This is needed because the script has a hyphen in the filename.
-    """
-    import importlib.util
-    import sys
-
-    spec = importlib.util.spec_from_file_location(
-        "orbstack_nixos_provision", get_provision_script_path()
-    )
-    provision_module = importlib.util.module_from_spec(spec)
-    sys.modules["orbstack_nixos_provision"] = provision_module
-    spec.loader.exec_module(provision_module)
-
-    return provision_module
+def import_provision_script() -> ModuleType:
+    """Return the provisioning script as a module."""
+    return provision_module.load()
 
 
 def create_machine_only_direct(

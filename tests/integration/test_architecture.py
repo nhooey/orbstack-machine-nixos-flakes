@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     create_machine_direct,
     get_nix_system_architecture,
     import_provision_script,
@@ -48,7 +48,7 @@ def _test_explicit_architecture_helper(
     expected_nix_arch: str,
 ):
     """Helper function to test creating a machine with explicit architecture."""
-    from tests.utils import delete_machine
+    from tests.integration.utils import delete_machine
 
     machine_name = unique_machine_name
 

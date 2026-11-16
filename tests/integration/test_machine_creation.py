@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     create_machine_direct,
     delete_machine,
     get_hostname,

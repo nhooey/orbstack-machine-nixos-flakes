@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     BOOTSTRAP_SCRIPT_NAME,
     FLAKE_EXTRA_DIR,
     FLAKE_REPO_DIR,
@@ -141,7 +141,7 @@ def test_030_nix_extra_config_with_multiple_files(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test the orbstack-nix-config/extra directory with multiple files in a nested structure."""
-    from tests.utils import delete_machine
+    from tests.integration.utils import delete_machine
 
     # Create a test project directory with custom orbstack-nix-config/extra
     test_project = tmp_path / "test-project"
@@ -194,7 +194,7 @@ def test_031_without_nix_extra_config_dir(
     unique_machine_name, project_root, test_username, tmp_path
 ):
     """Test that provisioning works even without the orbstack-nix-config/extra directory."""
-    from tests.utils import delete_machine
+    from tests.integration.utils import delete_machine
 
     # Create a minimal test project without orbstack-nix-config/extra
     test_project = tmp_path / "minimal-project"

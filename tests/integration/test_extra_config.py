@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.utils import (
+from tests.integration.utils import (
     FLAKE_EXTRA_DIR,
     FLAKE_REPO_DIR,
     exec_on_machine,
