@@ -166,9 +166,7 @@ def stop_machine(machine_name: str, max_wait: int = 30) -> bool:
     elapsed = 0
     while elapsed < max_wait:
         if machine_is_stopped(machine_name):
-            print(
-                f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr
-            )
+            print(f"[TEST] Machine {machine_name} stopped successfully", file=sys.stderr)
             return True
         time.sleep(2)
         elapsed += 2
@@ -201,9 +199,7 @@ def clone_machine(source_name: str, dest_name: str, max_wait: int = 60) -> bool:
 
     # Clone the machine
     print(f"[TEST] Cloning {source_name} to {dest_name}...", file=sys.stderr)
-    result = run_command(
-        ["orb", "clone", source_name, dest_name], check=False, timeout=120
-    )
+    result = run_command(["orb", "clone", source_name, dest_name], check=False, timeout=120)
     if result.returncode != 0:
         print(f"[TEST] Failed to clone machine: {result.stderr}", file=sys.stderr)
         return False
@@ -271,9 +267,7 @@ def wait_for_network_online(machine_name: str, max_wait: int = 30) -> bool:
     Waits for network-online.target and verifies DNS resolution works.
     This prevents intermittent DNS failures during nix builds.
     """
-    print(
-        f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr
-    )
+    print(f"[TEST] Waiting for network to be online on {machine_name}...", file=sys.stderr)
 
     # Wait for network-online.target
     elapsed = 0
@@ -342,9 +336,7 @@ def get_installed_packages(machine_name: str) -> list[str]:
 
 def service_is_active(machine_name: str, service_name: str) -> bool:
     """Check if a systemd service is active."""
-    result = exec_on_machine(
-        machine_name, ["systemctl", "is-active", service_name], check=False
-    )
+    result = exec_on_machine(machine_name, ["systemctl", "is-active", service_name], check=False)
     return result.returncode == 0 and result.stdout.strip() == "active"
 
 
@@ -374,9 +366,7 @@ def get_nix_system_architecture(machine_name: str) -> str:
     return str(result.stdout).strip()
 
 
-def verify_flake_deployed(
-    machine_name: str, expected_files: list[str] | None = None
-) -> bool:
+def verify_flake_deployed(machine_name: str, expected_files: list[str] | None = None) -> bool:
     """Verify flake files exist in /etc/nixos/."""
     if expected_files is None:
         expected_files = ["flake.nix", "flake.lock", "configuration.nix"]

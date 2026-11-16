@@ -38,9 +38,7 @@ def test_012_extra_config_with_simple_package(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_013_extra_config_with_marker_file(
-    test_machine_created, test_username, sample_configs_dir
-):
+def test_013_extra_config_with_marker_file(test_machine_created, test_username, sample_configs_dir):
     """Test --extra-config creates a marker file to verify it was applied via nixos-rebuild."""
     machine_name = test_machine_created
     extra_config = sample_configs_dir / "with-service.nix"
@@ -63,9 +61,7 @@ def test_013_extra_config_with_marker_file(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_014_extra_config_on_rebuild(
-    test_machine_created, test_username, sample_configs_dir
-):
+def test_014_extra_config_on_rebuild(test_machine_created, test_username, sample_configs_dir):
     """Test applying --extra-config on nixos-rebuild."""
     machine_name = test_machine_created
     extra_config = sample_configs_dir / "simple.nix"
@@ -79,9 +75,7 @@ def test_014_extra_config_on_rebuild(
 
     # Now tmux should be installed
     result = exec_on_machine(machine_name, ["which", "tmux"], check=False)
-    assert result.returncode == 0, (
-        "tmux should be installed after rebuild with extra config"
-    )
+    assert result.returncode == 0, "tmux should be installed after rebuild with extra config"
 
 
 @pytest.mark.requires_orbstack
@@ -97,10 +91,7 @@ def test_015_extra_config_nonexistent_file(test_machine_created, test_username):
 
     # Should fail with non-zero return code
     assert result.returncode != 0, "Should fail when extra_config file doesn't exist"
-    assert (
-        "not found" in result.stderr.lower()
-        or "does not exist" in result.stderr.lower()
-    )
+    assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()
 
 
 @pytest.mark.slow
@@ -161,9 +152,7 @@ def test_017_extra_config_from_nix_extra_config_dir(
     machine_name = test_machine_created
 
     # Use the docker.nix from the project
-    docker_config = (
-        project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
-    )
+    docker_config = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
 
     # We need to combine docker.nix with user config, so let's create a combined config
     combined_config = sample_configs_dir / "docker-combined.nix"

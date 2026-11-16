@@ -70,9 +70,7 @@ def test_007_full_workflow_create_verify_rebuild_delete(
 
 @pytest.mark.slow
 @pytest.mark.requires_orbstack
-def test_008_multiple_sequential_rebuilds(
-    test_machine_created, test_username, sample_configs_dir
-):
+def test_008_multiple_sequential_rebuilds(test_machine_created, test_username, sample_configs_dir):
     """Test multiple sequential rebuilds to ensure idempotency."""
     machine_name = test_machine_created
 
@@ -112,9 +110,7 @@ def test_009_ssh_connectivity(test_machine_created):
     assert "Hello from VM" in result.stdout
 
     # Test that the SSH service is running
-    result = exec_on_machine(
-        machine_name, ["systemctl", "is-active", "sshd"], check=False
-    )
+    result = exec_on_machine(machine_name, ["systemctl", "is-active", "sshd"], check=False)
     assert result.returncode == 0
 
 
@@ -127,9 +123,7 @@ def test_010_complete_docker_workflow(
     machine_name = test_machine_created
 
     # Create a combined Docker config
-    docker_config_path = (
-        project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
-    )
+    docker_config_path = project_root / FLAKE_REPO_DIR / FLAKE_EXTRA_DIR / "lib" / "docker.nix"
     combined_config = sample_configs_dir / "docker-full.nix"
     combined_config.write_text(
         f"""{{ config, pkgs, username, ... }}:
@@ -180,17 +174,11 @@ def test_011_persistence_after_rebuild(test_machine_created, test_username):
     )
 
     # Verify the file exists
-    result = exec_on_machine(
-        machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
-    )
+    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
     assert test_file_content in result.stdout
 
     # Run rebuild
     nixos_rebuild_direct(machine_name=machine_name, username=test_username)
     # Verify the file still exists after rebuild
-    result = exec_on_machine(
-        machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True
-    )
+    result = exec_on_machine(machine_name, ["cat", f"/home/{test_username}/test.txt"], check=True)
     assert test_file_content in result.stdout
-
-

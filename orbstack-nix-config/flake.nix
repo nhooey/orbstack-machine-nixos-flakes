@@ -5,10 +5,12 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       # Helper to build NixOS configuration for a given system
-      mkSystem = system:
+      mkSystem =
+        system:
         nixpkgs.lib.nixosSystem {
           inherit system;
 
@@ -18,13 +20,15 @@
             # Support for user-specified config file via NIXOS_EXTRA_CONFIG environment variable
             # This allows users to supplement the configuration without forking or modifying files
             # Usage: NIXOS_EXTRA_CONFIG=/path/to/config.nix nixos-rebuild switch --flake .#config --impure
-            ({ lib, ... }:
+            (
+              { lib, ... }:
               let
                 userConfigPath = builtins.getEnv "NIXOS_EXTRA_CONFIG";
               in
               {
                 imports = lib.optional (userConfigPath != "" && builtins.pathExists userConfigPath) userConfigPath;
-              })
+              }
+            )
           ];
 
           # Impure evaluation (builtins.getEnv) takes the hostname and username at build time.

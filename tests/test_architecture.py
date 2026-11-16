@@ -28,9 +28,7 @@ def test_001_default_architecture_detection(test_machine_created):
     nix_arch = get_nix_system_architecture(machine_name)
 
     # Should be a valid Nix architecture
-    assert nix_arch in ["aarch64-linux", "x86_64-linux"], (
-        f"Invalid Nix architecture: {nix_arch}"
-    )
+    assert nix_arch in ["aarch64-linux", "x86_64-linux"], f"Invalid Nix architecture: {nix_arch}"
 
     # Get host architecture
     host_result = run_command(["uname", "-m"], check=True)
@@ -55,14 +53,10 @@ def _test_explicit_architecture_helper(
     machine_name = unique_machine_name
 
     try:
-        create_machine_direct(
-            machine_name=machine_name, username=test_username, arch=arch_flag
-        )
+        create_machine_direct(machine_name=machine_name, username=test_username, arch=arch_flag)
         assert machine_exists(machine_name)
         nix_arch = get_nix_system_architecture(machine_name)
-        assert nix_arch == expected_nix_arch, (
-            f"Expected {expected_nix_arch}, got {nix_arch}"
-        )
+        assert nix_arch == expected_nix_arch, f"Expected {expected_nix_arch}, got {nix_arch}"
     except (SystemExit, subprocess.CalledProcessError, subprocess.SubprocessError):
         # If it fails, it should be due to architecture incompatibility
         pytest.skip(f"Architecture {arch_flag} not supported on this host")

@@ -48,9 +48,7 @@ def run_command(
     if verbose:
         print(f"[VERBOSE] Running [{timeout}s]: {' '.join(cmd)}", file=sys.stderr)
     if capture_output:
-        return subprocess.run(
-            cmd, check=check, capture_output=True, text=True, timeout=timeout
-        )
+        return subprocess.run(cmd, check=check, capture_output=True, text=True, timeout=timeout)
     else:
         return subprocess.run(cmd, check=check, text=True, timeout=timeout)
 
@@ -64,9 +62,7 @@ def machine_exists(
     machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> bool:
     """Check if the OrbStack machine already exists."""
-    result = run_command(
-        ["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout
-    )
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout)
     for line in result.stdout.splitlines():
         if line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} "):
             return True
@@ -77,9 +73,7 @@ def machine_is_running(
     machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
 ) -> bool:
     """Check if the machine is running."""
-    result = run_command(
-        ["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout
-    )
+    result = run_command(["orb", "list"], capture_output=True, verbose=verbose, timeout=timeout)
     for line in result.stdout.splitlines():
         if (
             line.startswith(f"{machine_name}\t") or line.startswith(f"{machine_name} ")
@@ -169,9 +163,7 @@ def copy_local_flake(
     return flake_dest
 
 
-def get_flake_path(
-    machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT
-) -> str:
+def get_flake_path(machine_name: str, verbose: bool = False, timeout: int = DEFAULT_TIMEOUT) -> str:
     """Get the flake path by copying local files to the machine.
 
     Args:
@@ -183,9 +175,7 @@ def get_flake_path(
         Path to the flake directory on the machine.
     """
     # Use flake repository directory
-    return copy_local_flake(
-        machine_name, FLAKE_REPO_DIR, verbose=verbose, timeout=timeout
-    )
+    return copy_local_flake(machine_name, FLAKE_REPO_DIR, verbose=verbose, timeout=timeout)
 
 
 def copy_bootstrap_script(
@@ -197,9 +187,7 @@ def copy_bootstrap_script(
     bootstrap_script = script_dir / BOOTSTRAP_SCRIPT_NAME
 
     if not bootstrap_script.exists():
-        print(
-            f"Error: Bootstrap script not found at {bootstrap_script}", file=sys.stderr
-        )
+        print(f"Error: Bootstrap script not found at {bootstrap_script}", file=sys.stderr)
         sys.exit(1)
 
     # Create a temporary directory
@@ -262,9 +250,7 @@ def copy_nix_extra_config_dir(
 
     # Get the unique parent directories that need to be created
     parent_dirs = {
-        f"{dest_dir}/{rel_path.parent}"
-        for _, rel_path in files
-        if rel_path.parent != Path(".")
+        f"{dest_dir}/{rel_path.parent}" for _, rel_path in files if rel_path.parent != Path(".")
     }
 
     # Create all the parent directories
@@ -320,9 +306,7 @@ def copy_extra_config(
             if nix_extra_config_dir.exists():
                 similar_files = list(nix_extra_config_dir.rglob("*.nix"))
                 if similar_files:
-                    print(
-                        f"\nAvailable .nix files in {extra_dir_path}/:", file=sys.stderr
-                    )
+                    print(f"\nAvailable .nix files in {extra_dir_path}/:", file=sys.stderr)
                     for f in similar_files:
                         rel_path = f.relative_to(script_dir)
                         print(f"  {rel_path}", file=sys.stderr)
@@ -336,9 +320,7 @@ def copy_extra_config(
 
     try:
         # Check if the extra config is within orbstack-nix-config/extra/
-        rel_to_orbstack = extra_config_path.relative_to(
-            orbstack_nix_config_dir / FLAKE_EXTRA_DIR
-        )
+        rel_to_orbstack = extra_config_path.relative_to(orbstack_nix_config_dir / FLAKE_EXTRA_DIR)
         is_in_extra_dir = True
     except ValueError:
         # Not within orbstack-nix-config/extra/
@@ -456,9 +438,7 @@ def get_architecture(
 ) -> tuple[str, str]:
     # If no arch specified, detect from host
     if arch is None:
-        result = run_command(
-            ["uname", "-m"], capture_output=True, verbose=verbose, timeout=timeout
-        )
+        result = run_command(["uname", "-m"], capture_output=True, verbose=verbose, timeout=timeout)
         machine = result.stdout.strip()
 
         # Normalize uname output
@@ -524,9 +504,7 @@ def run_nixos_rebuild(
         print(f"    Using extra config on VM: {extra_config_vm_path}")
 
     # Copy bootstrap script
-    vm_bootstrap_script_path = copy_bootstrap_script(
-        machine_name, verbose=verbose, timeout=timeout
-    )
+    vm_bootstrap_script_path = copy_bootstrap_script(machine_name, verbose=verbose, timeout=timeout)
 
     # Build flake reference
     flake_ref = f"{flake_path}#{flake_attr}"
@@ -599,9 +577,7 @@ def create_machine_only(
     if machine_exists(machine_name, verbose=verbose, timeout=timeout):
         if recreate:
             print(f"==> Deleting existing machine: {machine_name}")
-            run_command(
-                ["orb", "delete", "-f", machine_name], verbose=verbose, timeout=timeout
-            )
+            run_command(["orb", "delete", "-f", machine_name], verbose=verbose, timeout=timeout)
         else:
             print(f"Error: Machine '{machine_name}' already exists.", file=sys.stderr)
             print("Use --recreate to delete and recreate the machine.", file=sys.stderr)
@@ -709,17 +685,13 @@ def parse_args() -> argparse.Namespace:
         help="Timeout in seconds for all operations (default: %(default)s)",
     )
 
-    subparsers = parser.add_subparsers(
-        dest="command", required=True, help="Command to execute"
-    )
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Command to execute")
 
     # Create command
     create_parser = subparsers.add_parser(
         "create", help="Create and provision a new OrbStack NixOS machine"
     )
-    create_parser.add_argument(
-        "machine_name", help="Name of the OrbStack machine to create"
-    )
+    create_parser.add_argument("machine_name", help="Name of the OrbStack machine to create")
     create_parser.add_argument(
         "--arch",
         default=None,
@@ -731,9 +703,7 @@ def parse_args() -> argparse.Namespace:
         default="default",
         help="Flake attribute to build (default: default)",
     )
-    create_parser.add_argument(
-        "--hostname", help="Hostname to set (default: same as machine-name)"
-    )
+    create_parser.add_argument("--hostname", help="Hostname to set (default: same as machine-name)")
     create_parser.add_argument(
         "--username", help="Username to create in NixOS (default: current user)"
     )
@@ -780,24 +750,14 @@ def main() -> None:
     timeout = args.timeout
 
     # Get username - default to current user
-    username = (
-        args.username
-        if (hasattr(args, "username") and args.username)
-        else getpass.getuser()
-    )
+    username = args.username if (hasattr(args, "username") and args.username) else getpass.getuser()
 
     # Get hostname - default to machine name
-    hostname = (
-        args.hostname
-        if (hasattr(args, "hostname") and args.hostname)
-        else args.machine_name
-    )
+    hostname = args.hostname if (hasattr(args, "hostname") and args.hostname) else args.machine_name
 
     # Get extra config if provided
     extra_config = (
-        args.extra_config
-        if (hasattr(args, "extra_config") and args.extra_config)
-        else None
+        args.extra_config if (hasattr(args, "extra_config") and args.extra_config) else None
     )
 
     # Execute command

@@ -34,9 +34,7 @@ def pytest_collection_modifyitems(items):
     if not orbstack_is_installed():
         skip_orbstack = pytest.mark.skip(reason="OrbStack not installed")
         for item in items:
-            if "requires_orbstack" in item.keywords or item.fspath.basename.startswith(
-                "test_"
-            ):
+            if "requires_orbstack" in item.keywords or item.fspath.basename.startswith("test_"):
                 item.add_marker(skip_orbstack)
 
 
@@ -103,9 +101,7 @@ def template_machine(session_timestamp, test_username) -> Generator[str, None, N
     template_name = f"test-nixos-MASTER-{session_timestamp}"
 
     print(f"\n{'=' * 80}", file=sys.stderr)
-    print(
-        f"[TEST] Creating the master template machine: {template_name}", file=sys.stderr
-    )
+    print(f"[TEST] Creating the master template machine: {template_name}", file=sys.stderr)
     print("[TEST] This will be cloned for all tests in this session", file=sys.stderr)
     print(f"{'=' * 80}\n", file=sys.stderr)
 
@@ -191,12 +187,8 @@ def test_machine_created(test_machine, test_username) -> Generator[str, None, No
     # Apply the Nix configuration with the correct hostname and username
     # This ensures cloned machines get their unique hostname set correctly
     # Note: nixos_rebuild_direct automatically sets the hostname after rebuild
-    print(
-        f"\n[TEST] Applying the Nix configuration to {machine_name}...", file=sys.stderr
-    )
-    nixos_rebuild_direct(
-        machine_name=machine_name, hostname=machine_name, username=test_username
-    )
+    print(f"\n[TEST] Applying the Nix configuration to {machine_name}...", file=sys.stderr)
+    nixos_rebuild_direct(machine_name=machine_name, hostname=machine_name, username=test_username)
 
     yield machine_name
 

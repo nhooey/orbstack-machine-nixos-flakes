@@ -49,9 +49,7 @@ def test_025_nix_extra_config_dir_copied(test_machine_created):
 
     # The directory should exist
     result = exec_on_machine(machine_name, ["test", "-d", base_path], check=False)
-    assert result.returncode == 0, (
-        "The orbstack-nix-config/extra directory should exist on the VM"
-    )
+    assert result.returncode == 0, "The orbstack-nix-config/extra directory should exist on the VM"
 
 
 @pytest.mark.slow
@@ -63,9 +61,9 @@ def test_026_nix_extra_config_files_present(test_machine_created):
     # Check for the known files from the orbstack-nix-config/extra directory
     docker_nix = f"{TMP_BASE_DIR}/{FLAKE_REPO_DIR}/{FLAKE_EXTRA_DIR}/lib/docker.nix"
 
-    assert file_exists_on_machine(machine_name, docker_nix), (
-        "docker.nix should be copied from orbstack-nix-config/extra/lib/"
-    )
+    assert file_exists_on_machine(
+        machine_name, docker_nix
+    ), "docker.nix should be copied from orbstack-nix-config/extra/lib/"
 
 
 @pytest.mark.slow
