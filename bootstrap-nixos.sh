@@ -8,8 +8,10 @@ set -euo pipefail
 # from a flake reference.
 #
 # Environment Variables:
-#   FLAKE_REF:        Required. The flake reference to build (e.g., .#default)
-#   NIXOS_HOSTNAME:   Optional. Hostname to set during provisioning.
+#   FLAKE_REF:          Required. The flake reference to build (e.g., .#default)
+#   NIXOS_HOSTNAME:     Optional. Hostname to set; the flake falls back to "nixos".
+#   NIXOS_USERNAME:     Optional. User to create; the flake falls back to "nixos".
+#   NIXOS_EXTRA_CONFIG: Optional. Path on the machine to an extra Nix module to import.
 # ============================================================================
 
 if [[ -z "${FLAKE_REF:-}" ]]; then

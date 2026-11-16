@@ -27,9 +27,9 @@
               })
           ];
 
-          # Note: We use impure evaluation (builtins.getEnv) ONLY during initial provisioning
-          # to accept runtime parameters like hostname and username. After the first build, these values
-          # are embedded in the system configuration and can be changed by editing the Nix files.
+          # Impure evaluation (builtins.getEnv) takes the hostname and username at build time.
+          # Every build reads them again, so a rebuild without NIXOS_HOSTNAME and NIXOS_USERNAME
+          # set falls back to "nixos" for both (see configuration.nix).
           specialArgs = {
             hostname = builtins.getEnv "NIXOS_HOSTNAME";
             username = builtins.getEnv "NIXOS_USERNAME";

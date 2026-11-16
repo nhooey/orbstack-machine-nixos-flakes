@@ -706,7 +706,7 @@ def parse_args() -> argparse.Namespace:
         "--timeout",
         type=int,
         default=DEFAULT_TIMEOUT,
-        help="Timeout in seconds for all operations (default: 600)",
+        help="Timeout in seconds for all operations (default: %(default)s)",
     )
 
     subparsers = parser.add_subparsers(
