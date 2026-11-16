@@ -100,6 +100,7 @@
                   ./orbstack-nix-config/flake.nix
                   ./pytest.ini
                   ./tests
+                  ./tools
                 ];
               };
               PYTHONDONTWRITEBYTECODE = "1";
@@ -161,83 +162,14 @@
             {
               category = "app";
               name = "provision";
-              help = "Run the provisioning script";
-              command = ''./orbstack-machine-nixos-flakes.py "$@"'';
+              help = "Create an OrbStack NixOS machine or rebuild one (create, nixos-rebuild)";
+              command = ''exec "$PRJ_ROOT/orbstack-machine-nixos-flakes.py" "$@"'';
             }
             {
               category = "code";
-              name = "python-source-files";
-              help = "List Python source files in the project";
-              command = "git ls-files | egrep '\.py$'";
-            }
-            {
-              category = "code";
-              name = "format";
-              help = "Format the Python and Nix files with treefmt (nix fmt)";
-              command = ''nix fmt -- "$@"'';
-            }
-            {
-              category = "code";
-              name = "typecheck";
-              help = "Run mypy type checker";
-              command = ''mypy $(python-source-files) "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests";
-              help = "Run all tests";
-              command = ''pytest "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-unit";
-              help = "Run only the unit tests, which need no OrbStack";
-              command = ''pytest tests/unit "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-fast";
-              help = "Run only fast tests (skip slow machine creation tests)";
-              command = ''pytest -m 'not slow' "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-verbose";
-              help = "Run tests with verbose output";
-              command = ''pytest -v "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-debug";
-              help = "Run tests with real-time output (no capture)";
-              command = ''pytest -s -vv "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-parallel";
-              help = "Run tests in parallel";
-              command = ''pytest -n auto "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-coverage";
-              help = "Run tests with coverage report";
-              command = ''pytest --cov=. --cov-report=html --cov-report=term "$@"'';
-            }
-            {
-              category = "testing";
-              name = "tests-cleanup";
-              help = "Clean up leftover test machines";
-              command = ''
-                machines=$(orb list | grep -E '^test-nixos-[0-9]{13}-*' | awk '{print $1}')
-                if [ -n "$machines" ]; then
-                  echo "Deleting the following OrbStack Machines:"
-                  echo "$machines" | sed 's/^/  /'
-                  echo "$machines" | xargs -I {} orb delete -f {}
-                else
-                  echo "No test machines to clean up."
-                fi
-              '';
+              name = "dev";
+              help = "Run the tests, format, type-check or clean up test machines (dev --help)";
+              command = ''exec python "$PRJ_ROOT/tools/dev.py" "$@"'';
             }
           ];
         };
