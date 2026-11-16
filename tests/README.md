@@ -1,10 +1,14 @@
-# Integration Tests for OrbStack NixOS Provisioning
+# Tests for OrbStack NixOS Provisioning
 
-This directory contains comprehensive integration tests for the OrbStack NixOS provisioning system.
+- `tests/unit/` tests the provisioning script's pure functions: architecture mapping, the flake attribute for
+  each architecture, `orb list` parsing, path decisions, the bootstrap exports and the command line. They need no
+  OrbStack, and `nix flake check` runs them. Run them alone with `tests-unit`.
+- `tests/integration/` creates, provisions and deletes real OrbStack Machines. These tests are skipped when `orb`
+  isn't on `PATH`.
 
 ## Prerequisites
 
-1. **OrbStack** must be installed and running
+1. **OrbStack** must be installed and running, for the integration tests
 2. **Python 3.9+** required
 3. **pytest** and test dependencies
 
@@ -22,17 +26,25 @@ nix develop
 
 ```
 tests/
-├── __init__.py                      # Package marker
-├── conftest.py                      # Pytest fixtures and configuration
-├── utils.py                         # Test utility functions
-├── fixtures/                        # Static test fixtures
-│   └── README.md
-├── test_machine_creation.py         # Machine creation tests
-├── test_nix_flakes.py              # Nix flakes integration tests
-├── test_extra_config.py            # --extra-config functionality tests
-├── test_nix_extra_config_dir.py    # orbstack-nix-config/extra directory tests
-├── test_architecture.py            # Architecture detection tests
-└── test_e2e.py                     # End-to-end workflow tests
+├── __init__.py
+├── provision_module.py                  # Loads the provisioning script as a module
+├── unit/                                # Pure-function tests, no OrbStack
+│   ├── test_architecture.py             # Architecture mapping and flake attributes
+│   ├── test_bootstrap_env.py            # Exports passed to bootstrap-nixos.sh
+│   ├── test_cli.py                      # Argument parsing and defaults
+│   ├── test_orb_list.py                 # Machine states from `orb list`
+│   └── test_paths.py                    # Extra-config paths and directories
+└── integration/                         # Tests that create real machines
+    ├── conftest.py                      # Fixtures, and the skip without OrbStack
+    ├── utils.py                         # Machine helpers
+    ├── fixtures/
+    │   └── README.md
+    ├── test_machine_creation.py         # Machine creation tests
+    ├── test_nix_flakes.py               # Nix flakes integration tests
+    ├── test_extra_config.py             # --extra-config functionality tests
+    ├── test_nix_extra_config_dir.py     # orbstack-nix-config/extra directory tests
+    ├── test_architecture.py             # Architecture a machine runs and is built for
+    └── test_e2e.py                      # End-to-end workflow tests
 ```
 
 ## Running Tests
@@ -43,29 +55,32 @@ tests/
 pytest
 ```
 
+### Run only the unit tests
+
+```bash
+tests-unit  # pytest tests/unit
+```
+
 ### Run a specific test file
 
 ```bash
-pytest tests/test_machine_creation.py
+pytest tests/integration/test_machine_creation.py
 ```
 
 ### Run a specific test
 
 ```bash
-pytest tests/test_machine_creation.py::test_019_create_machine_default_settings
+pytest tests/integration/test_machine_creation.py::test_019_create_machine_default_settings
 ```
 
 ### Skip slow tests
 
 ```bash
-pytest -m "not slow"
+tests-fast  # pytest -m "not slow"
 ```
 
-### Run only fast tests
-
-```bash
-pytest -m "not slow"
-```
+Every integration test that needs a provisioned machine is marked slow, so this runs the unit tests and
+`test_034`, which needs OrbStack but creates no machine.
 
 ### Run tests in parallel
 
@@ -85,17 +100,16 @@ pytest -v
 pytest -s
 ```
 
-## Test Categories
+## Integration Test Categories
 
 ### Machine Creation Tests (`test_machine_creation.py`)
 
-Tests basic machine creation, deletion, and management:
+Tests basic machine creation and management:
 
 - Default settings
 - Custom hostname/username
 - Machine already exists error handling
 - `--recreate` flag functionality
-- Machine deletion
 
 ### Nix Flakes Tests (`test_nix_flakes.py`)
 
@@ -112,11 +126,9 @@ Tests Nix flakes integration:
 Tests `--extra-config` functionality:
 
 - Simple package installation
-- Marker file verification
-- Extra config on rebuild
+- Marker file verification, which shows `NIXOS_EXTRA_CONFIG` reached the flake
 - Relative and absolute paths
 - Integration with `orbstack-nix-config/extra/lib/` files
-- Environment variable passing
 
 ### Nix Extra Config Directory Tests (`test_nix_extra_config_dir.py`)
 
@@ -131,14 +143,14 @@ Tests `orbstack-nix-config/extra/` directory copying:
 
 ### Architecture Tests (`test_architecture.py`)
 
-Tests architecture detection and mapping:
+Tests the architecture a machine runs, and the one its NixOS system (`/run/current-system/system`) is built for:
 
 - Auto-detection of host architecture
-- Explicit ARM architecture flags (aarch64, arm64)
+- Explicit ARM architecture flags (aarch64, arm64), skipped on an x86_64 host
 - Explicit x86 architecture flags (x86_64, amd64)
-- Architecture mapping function
-- Invalid architecture handling
-- Flake attribute matching
+
+The mapping itself, invalid architectures and the flake attribute choice are unit-tested in
+`tests/unit/test_architecture.py`.
 
 ### End-to-End Tests (`test_e2e.py`)
 
@@ -146,12 +158,8 @@ Complete workflow tests:
 
 - Full create → verify → rebuild → delete workflow
 - Multiple sequential rebuilds (idempotency)
-- SSH connectivity
+- OpenSSH enabled by `configuration.nix`
 - Docker workflow
-- Configuration persistence
-- System packages verification
-- Nix flakes enabled
-- User permissions (wheel group, sudo)
 
 ## Test Markers
 
@@ -182,7 +190,7 @@ Tests creating/provisioning machines may take longer and have explicit timeouts 
 
 1. **Unique machine names**: Each test uses timestamped names to avoid conflicts
 2. **Automatic cleanup**: Fixtures ensure machines are deleted even on test failure
-3. **Skip if no OrbStack**: Tests are skipped if OrbStack is not installed
+3. **Skip if no OrbStack**: The integration tests are skipped if OrbStack is not installed
 4. **Isolated configs**: Sample configs generated in temporary directories
 
 ## Debugging Failed Tests
@@ -196,7 +204,7 @@ pytest -v -s
 ### Run a single failing test
 
 ```bash
-pytest tests/test_file.py::test_name -v -s
+pytest tests/integration/test_file.py::test_name -v -s
 ```
 
 ### Check machine state
@@ -219,7 +227,10 @@ Edit `pytest.ini` and increase the `timeout` value.
 
 ## Writing New Tests
 
-1. Import necessary utilities from `tests/utils.py`
+Put a decision the script makes into a pure function and test it in `tests/unit/`, with no machine. Write an
+integration test only for behaviour that needs a real machine:
+
+1. Import necessary utilities from `tests/integration/utils.py`
 2. Use appropriate fixtures (`test_machine`, `test_machine_created`)
 3. Add `@pytest.mark.slow` for tests that create/provision machines
 4. Add `@pytest.mark.requires_orbstack` for tests requiring OrbStack
@@ -244,7 +255,7 @@ These tests can be integrated into CI/CD pipelines. Note that:
 
 1. OrbStack must be installed on the CI runner
 2. Tests may take 10–30 minutes to complete
-3. Consider running only fast tests in CI: `pytest -m "not slow"`
+3. `nix flake check` runs the unit tests without OrbStack
 4. Use parallel execution: `pytest -n auto`
 
 ## Troubleshooting
@@ -267,17 +278,16 @@ pip install -e ".[dev,test]"
 
 ### ModuleNotFoundError: No module named 'orbstack_nixos_provision'
 
-This is expected because `orbstack-machine-nixos-flakes.py` has a hyphen in the filename. Tests use
-`import_provision_script()` from `tests/utils.py` to handle this. If you're writing new tests that need to import from
-the main script, use:
+This is expected because `orbstack-machine-nixos-flakes.py` has a hyphen in the filename. Tests load it with
+`tests/provision_module.py`:
 
 ```python
-from tests.utils import import_provision_script
+from tests.provision_module import load
+
+provision = load()
 
 def test_something():
-    provision_module = import_provision_script()
-    get_architecture = provision_module.get_architecture
-    # ... use the function
+    assert provision.map_architecture("arm64") == ("arm64", "aarch64")
 ```
 
 ### Tests hanging

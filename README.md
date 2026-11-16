@@ -90,14 +90,17 @@ pip install -e ".[dev,test]"
 Tests are located in the `tests/` directory. See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ```bash
-# Run all tests (pytest)
+# Run all tests (pytest); the integration tests create real OrbStack Machines
 tests
 
-# Run the tests not marked slow (pytest -m 'not slow'); some of these still create a machine
+# Run only the unit tests, which need no OrbStack (nix flake check runs these too)
+tests-unit
+
+# Run the tests not marked slow (pytest -m 'not slow'); none of these creates a machine
 tests-fast
 
 # Run specific test file
-tests tests/test_extra_config.py
+tests tests/integration/test_extra_config.py
 
 # Run with coverage
 tests-coverage
