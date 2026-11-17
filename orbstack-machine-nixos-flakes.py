@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import re
 import shlex
 import subprocess
 import sys
@@ -741,6 +742,19 @@ def nixos_rebuild(
 # ============================================================================
 
 
+USERNAME_PATTERN = re.compile(r"[a-z_][a-z0-9_-]{0,31}")
+
+
+def nixos_username(value: str) -> str:
+    """Return value when NixOS can create a user by that name, for argparse."""
+    if not USERNAME_PATTERN.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is not a valid username: lower case letters, digits, '_' and '-',"
+            " starting with a letter or '_', at most 32 characters"
+        )
+    return value
+
+
 def resolve_identity(
     username: str | None, hostname: str | None, machine_name: str, current_user: str
 ) -> tuple[str, str]:
@@ -787,7 +801,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     create_parser.add_argument("--hostname", help="Hostname to set (default: same as machine-name)")
     create_parser.add_argument(
-        "--username", help="Username to create in NixOS (default: current user)"
+        "--username",
+        type=nixos_username,
+        help="Username to create in NixOS (default: current user)",
     )
     create_parser.add_argument(
         "--extra-config", help="Path to extra config file on host (optional)"
@@ -815,7 +831,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--hostname", help="Hostname to set (default: same as machine-name)"
     )
     rebuild_parser.add_argument(
-        "--username", help="Username to create in NixOS (default: current user)"
+        "--username",
+        type=nixos_username,
+        help="Username to create in NixOS (default: current user)",
     )
     rebuild_parser.add_argument(
         "--extra-config", help="Path to extra config file on host (optional)"
