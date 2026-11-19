@@ -91,3 +91,15 @@ def test_a_command_is_required():
 )
 def test_resolve_identity(username, hostname, expected):
     assert provision.resolve_identity(username, hostname, "machine", "me") == expected
+
+
+@pytest.mark.parametrize("command", ["create", "nixos-rebuild"])
+@pytest.mark.parametrize("username", ["x$(id)", "a|b", "a&b", "Root", "-x", "a" * 33, ""])
+def test_an_invalid_username_is_refused(command, username):
+    with pytest.raises(SystemExit):
+        provision.parse_args([command, "machine", "--username", username])
+
+
+@pytest.mark.parametrize("username", ["nhooey", "_svc", "a-b_9", "a" * 32])
+def test_a_valid_username_is_accepted(username):
+    assert provision.parse_args(["create", "machine", "--username", username]).username == username

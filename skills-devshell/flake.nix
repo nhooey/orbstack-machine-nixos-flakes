@@ -11,27 +11,17 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Skill sources, the same repos `github:nhooey/skillspkgs` aggregates.
-    # They follow `nixpkgs` but not `agent-skill-flake`, so each keeps its own
-    # compatible builder.
-    coding-agent-skills = {
-      url = "github:nhooey/coding-agent-skills";
+    # skillspkgs' skill combinations, one per repository family. This
+    # repository is in the Nix tooling family and takes its combination.
+    skillspkgs-combinations = {
+      url = "github:nhooey/skillspkgs?dir=sources/combinations";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.python-skills.follows = "python-skills";
     };
-    git-skills = {
-      url = "github:nhooey/git-skills";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-skills = {
-      url = "github:nhooey/nix-skills";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
+    # The one addition beyond the combination; see `sources` below.
     python-skills = {
       url = "github:nhooey/python-skills";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    shell-skills = {
-      url = "github:nhooey/shell-skills";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -47,30 +37,13 @@
       systems = import inputs.systems;
       name = "orbstack-machine-nixos-flakes-devshell";
       sources = [
-        # Commits, branches and pull requests.
-        { source = inputs.git-skills; }
-        # This flake, the NixOS configuration flake it provisions, and bumping
-        # their inputs.
+        # The Nix tooling family's skills.
+        { source = inputs.skillspkgs-combinations.combinations.nix-tooling; }
+        # This repository is Python-first, unlike the rest of its family: the
+        # provisioning script, `tools/dev.py` and the tests are Python.
         {
-          source = inputs.nix-skills;
-          skills = [
-            "nix-flakes"
-            "nix-flake-recursive-bump-input-versions"
-          ];
-        }
-        # The provisioning script and its tests.
-        { source = inputs.python-skills; }
-        # Safe shell commands: named deletes, PIDs, no machine-wide changes.
-        { source = inputs.shell-skills; }
-        # Headless sessions in checkouts, a tidy scratchpad, and the
-        # cross-repository plan's graph.
-        {
-          source = inputs.coding-agent-skills;
-          skills = [
-            "coding-agent-headless-in-checkout"
-            "coding-agent-plans-as-graph"
-            "coding-agent-scratchpad-scripts"
-          ];
+          source = inputs.python-skills;
+          skills = [ "python-hygiene-functional-style" ];
         }
       ];
     };

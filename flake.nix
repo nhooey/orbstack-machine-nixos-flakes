@@ -96,6 +96,7 @@
               src = pkgs.lib.fileset.toSource {
                 root = ./.;
                 fileset = pkgs.lib.fileset.unions [
+                  ./bootstrap-nixos.sh
                   ./orbstack-machine-nixos-flakes.py
                   ./orbstack-nix-config/flake.nix
                   ./pytest.ini
